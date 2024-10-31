@@ -4,6 +4,8 @@ import java.awt.Color;
 import java.io.File;
 
 import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -14,6 +16,7 @@ import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
+import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
 
@@ -22,6 +25,13 @@ import org.xml.sax.SAXException;
  * @author dingeta.navarro
  */
 public class ValidationFrame extends javax.swing.JFrame {
+
+    public static class MandatoryException extends Exception {
+
+        public MandatoryException(String message) {
+            super(message);
+        }
+    }
 
     /**
      * Creates new form ValidationFrame
@@ -44,7 +54,6 @@ public class ValidationFrame extends javax.swing.JFrame {
         mandatory = new javax.swing.ButtonGroup();
         jPanel2 = new javax.swing.JPanel();
         jLabel6 = new javax.swing.JLabel();
-        validationResult = new javax.swing.JTextArea();
         jLabel5 = new javax.swing.JLabel();
         analyzeCodeBtn = new javax.swing.JButton();
         mandatoryNo = new javax.swing.JRadioButton();
@@ -58,6 +67,8 @@ public class ValidationFrame extends javax.swing.JFrame {
         route = new javax.swing.JTextField();
         resultSummary = new javax.swing.JLabel("<html>The process code is <span style='color: green;'>correct</span>. | The process code is <span style='color: red;'>incorrect</span>. | The process code <span style='color: orange;'>may contain errors</span>.</html>")
         ;
+        jScrollPane1 = new javax.swing.JScrollPane();
+        validationResult = new javax.swing.JTextArea();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
         setTitle("Tricise - Process code validator");
@@ -67,18 +78,14 @@ public class ValidationFrame extends javax.swing.JFrame {
         jLabel6.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel6.setText("Validation result:");
 
-        validationResult.setEditable(false);
-        validationResult.setColumns(20);
-        validationResult.setRows(5);
-
         jLabel5.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel5.setText("Validation result summary:");
 
         analyzeCodeBtn.setBackground(new java.awt.Color(204, 0, 0));
         analyzeCodeBtn.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         analyzeCodeBtn.setForeground(new java.awt.Color(255, 255, 255));
+        analyzeCodeBtn.setText("Analyze Code");
         analyzeCodeBtn.setEnabled(false);
-        analyzeCodeBtn.setLabel("Analyze code");
         analyzeCodeBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 analyzeCodeBtnActionPerformed(evt);
@@ -162,38 +169,42 @@ public class ValidationFrame extends javax.swing.JFrame {
         resultSummary.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(153, 153, 153)));
         resultSummary.setOpaque(true);
 
+        validationResult.setEditable(false);
+        validationResult.setColumns(20);
+        validationResult.setRows(3);
+        jScrollPane1.setViewportView(validationResult);
+
         javax.swing.GroupLayout jPanel2Layout = new javax.swing.GroupLayout(jPanel2);
         jPanel2.setLayout(jPanel2Layout);
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
                 .addGap(37, 37, 37)
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(validationResult, javax.swing.GroupLayout.PREFERRED_SIZE, 622, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                            .addComponent(jLabel2)
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(prefix, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                            .addComponent(jLabel3)
-                            .addGap(18, 18, 18)
-                            .addComponent(mandatoryYes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                            .addGap(18, 18, 18)
-                            .addComponent(mandatoryNo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING)
-                        .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING)
-                        .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                            .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                .addComponent(jLabel4)
-                                .addComponent(route, javax.swing.GroupLayout.PREFERRED_SIZE, 589, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                            .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
-                        .addComponent(analyzeCodeBtn, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                        .addComponent(resultSummary, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)))
-                .addContainerGap(123, Short.MAX_VALUE))
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel2)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(prefix, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel3)
+                        .addGap(18, 18, 18)
+                        .addComponent(mandatoryYes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(mandatoryNo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel4)
+                            .addComponent(route, javax.swing.GroupLayout.PREFERRED_SIZE, 589, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(analyzeCodeBtn, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(resultSummary, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1))
+                .addGap(37, 37, 37))
             .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 784, Short.MAX_VALUE))
+                .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 697, Short.MAX_VALUE))
         );
         jPanel2Layout.setVerticalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -222,21 +233,19 @@ public class ValidationFrame extends javax.swing.JFrame {
                 .addGap(25, 25, 25)
                 .addComponent(jLabel6)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                .addComponent(validationResult, javax.swing.GroupLayout.PREFERRED_SIZE, 221, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(30, 30, 30))
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 201, javax.swing.GroupLayout.PREFERRED_SIZE)
+                .addGap(50, 50, 50))
             .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addGroup(jPanel2Layout.createSequentialGroup()
                     .addComponent(jLabel1, javax.swing.GroupLayout.PREFERRED_SIZE, 31, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addGap(0, 567, Short.MAX_VALUE)))
+                    .addGap(0, 586, Short.MAX_VALUE)))
         );
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
         layout.setHorizontalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(layout.createSequentialGroup()
-                .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                .addGap(0, 0, Short.MAX_VALUE))
+            .addComponent(jPanel2, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
         );
         layout.setVerticalGroup(
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
@@ -248,9 +257,13 @@ public class ValidationFrame extends javax.swing.JFrame {
         pack();
     }// </editor-fold>//GEN-END:initComponents
 
-    private void mandatoryYesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mandatoryYesActionPerformed
+    private void routeKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_routeKeyReleased
+
+    }//GEN-LAST:event_routeKeyReleased
+
+    private void routeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_routeActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_mandatoryYesActionPerformed
+    }//GEN-LAST:event_routeActionPerformed
 
     private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
         JFileChooser fc = new JFileChooser();
@@ -284,12 +297,12 @@ public class ValidationFrame extends javax.swing.JFrame {
         enableAnalyzeBtn();
     }//GEN-LAST:event_jButton2ActionPerformed
 
-    private void analyzeCodeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_analyzeCodeBtnActionPerformed
-
-        validationResult.setText(checks());
-
-
-    }//GEN-LAST:event_analyzeCodeBtnActionPerformed
+    private void prefixFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_prefixFocusLost
+        if (prefix.getText().equals("")) {
+            prefix.setText("Example: c_");
+            prefix.setForeground(new Color(153, 153, 153));
+        }
+    }//GEN-LAST:event_prefixFocusLost
 
     private void prefixFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_prefixFocusGained
         if (prefix.getText().equals("Example: c_")) {
@@ -298,15 +311,15 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_prefixFocusGained
 
-    private void prefixFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_prefixFocusLost
-        if (prefix.getText().equals("")) {
-            prefix.setText("Example: c_");
-            prefix.setForeground(new Color(153, 153, 153));
-        }
-    }//GEN-LAST:event_prefixFocusLost
+    private void mandatoryYesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mandatoryYesActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_mandatoryYesActionPerformed
 
-    private void routeKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_routeKeyReleased
-    }//GEN-LAST:event_routeKeyReleased
+    private void analyzeCodeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_analyzeCodeBtnActionPerformed
+
+        validationResult.setText(checks());
+
+    }//GEN-LAST:event_analyzeCodeBtnActionPerformed
     public void enableAnalyzeBtn() {
         if (route.getText().trim().equals("Load XML file (max. 5 MB)...")) {
             analyzeCodeBtn.setEnabled(false);
@@ -314,9 +327,6 @@ public class ValidationFrame extends javax.swing.JFrame {
             analyzeCodeBtn.setEnabled(true);
         }
     }
-    private void routeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_routeActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_routeActionPerformed
 
     /**
      * @param args the command line arguments
@@ -366,6 +376,7 @@ public class ValidationFrame extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel5;
     private javax.swing.JLabel jLabel6;
     private javax.swing.JPanel jPanel2;
+    private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.ButtonGroup mandatory;
     private javax.swing.JRadioButton mandatoryNo;
     private javax.swing.JRadioButton mandatoryYes;
@@ -374,10 +385,10 @@ public class ValidationFrame extends javax.swing.JFrame {
     private javax.swing.JTextField route;
     private javax.swing.JTextArea validationResult;
     // End of variables declaration//GEN-END:variables
-    
+
     public static Document doc;
-    
-    public static StringBuilder errors;
+
+    public static StringBuilder errors = new StringBuilder();
 
     public enum NodeType {
         PROCESS("Process"),
@@ -394,20 +405,101 @@ public class ValidationFrame extends javax.swing.JFrame {
             return nodeName;
         }
     }
-    private Element validateSingleProcess() {
-        NodeList processes= doc.getElementsByTagName("Process");
-        if(processes.getLength()!=1){
+
+    private org.w3c.dom.Element validateSingleProcess() {
+        NodeList processes = doc.getElementsByTagName("Process");
+        if (processes.getLength() != 1) {
             errors.append("- There is more than one process in the script");
             return null;
-        }else{
-            return(Element) processes.item(0);
+        } else {
+            return (org.w3c.dom.Element) processes.item(0);
         }
-        
+
+    }
+
+    private void validateMandatory(org.w3c.dom.Element process) throws MandatoryException {
+        if (mandatory.isSelected(mandatoryYes.getModel())) {
+            if (!prefix.getText().trim().equals("Example: c_")) {
+                validatePrefix(process);
+            } else {
+                JOptionPane.showMessageDialog(null, "Please insert a prefix if you choose \"Yes\" on the mandatory question.");
+                throw new MandatoryException("No prefix insertion but choosed \"Yes\" on the mandatory question.");
+            }
+        }
+    }
+
+    private void validatePrefix(org.w3c.dom.Element process) {
+        NodeList steps = process.getElementsByTagName("Step");
+        NodeList actions = process.getElementsByTagName("Action");
+        String prefixUser = prefix.getText();
+
+        if (!process.getAttribute("code").startsWith(prefixUser)) {
+            errors.append("- The process ").append(process.getAttribute("code")).append(" does not have the prefix \"").append(prefixUser).append("\"\n");
+        }
+
+        for (int i = 0; i < steps.getLength(); i++) {
+            org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
+            String stepId = step.getAttribute("id");
+
+            if (!stepId.equals("Start") && !stepId.equals("Finish")) {
+                if (!stepId.startsWith(prefixUser)) {
+                    errors.append("- The step ").append(step.getAttribute("id")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                }
+            }
+        }
+
+        for (int i = 0; i < actions.getLength(); i++) {
+            org.w3c.dom.Element action = (org.w3c.dom.Element) actions.item(i);
+
+            if (!action.getAttribute("code").startsWith(prefixUser)) {
+                errors.append("- The action ").append(action.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+            }
+        }
+    }
+
+    private void validateDescriptionLanguages(org.w3c.dom.Element process) {
+        String[] languages = {"ca", "cs", "da", "de", "en", "es", "fi", "fr", "hu", "it", "ja", "ko", "nl", "no",
+            "pl", "pt", "ru", "sv", "tr", "zh", "zh_TW"};
+        HashSet<String> languagesSet = new HashSet<>(Arrays.asList(languages));
+        NodeList childNodes = doc.getElementsByTagName("nls");
+        HashSet<String> foundLanguagesSet = new HashSet<>();
+
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node child = childNodes.item(i);
+            if (child.getNodeName().equals("nls")) {
+                org.w3c.dom.Element nlsElement = (org.w3c.dom.Element) child;
+                String languageCode = nlsElement.getAttribute("languageCode");
+                foundLanguagesSet.add(languageCode);
+            }
+        }
+        if (!foundLanguagesSet.containsAll(languagesSet)) {
+            errors.append("- The " + "type" + " \"" + "identifier" + "\" does not have a description in all languages");
+        }
     }
 
     private String checks() {
-        Element process = validateSingleProcess();
-        
+
+        // OBTAINING THE PROCESS
+        org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
+
+// ERROR CHECKING
+        // 1-- Mandatory check and prefix checks
+        try {
+            validateMandatory(process);
+        } catch (MandatoryException e) {
+            return "Execution stopped due to: " + e.getMessage();
+        }
+        if (errors.length() == 0) {
+            errors.append("");
+        }
+
+        // 2-- lENGUAGES VALIDATION
+        validateDescriptionLanguages(process);
+
+        // 3--  Name of the process
+        if (errors.toString().equals("")) {
+            resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
+        }
         return (String) errors.toString();
     }
 }
