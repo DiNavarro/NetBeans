@@ -77,6 +77,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         analyzeCodeBtn.setBackground(new java.awt.Color(204, 0, 0));
         analyzeCodeBtn.setFont(new java.awt.Font("Segoe UI", 1, 18)); // NOI18N
         analyzeCodeBtn.setForeground(new java.awt.Color(255, 255, 255));
+        analyzeCodeBtn.setEnabled(false);
         analyzeCodeBtn.setLabel("Analyze code");
         analyzeCodeBtn.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
@@ -280,6 +281,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         } catch (IOException | ParserConfigurationException | SAXException e) {
             JOptionPane.showMessageDialog(null, "Ocurrió un error: " + e.getMessage());
         }
+        enableAnalyzeBtn();
     }//GEN-LAST:event_jButton2ActionPerformed
 
     private void analyzeCodeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_analyzeCodeBtnActionPerformed
@@ -305,7 +307,13 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     private void routeKeyReleased(java.awt.event.KeyEvent evt) {//GEN-FIRST:event_routeKeyReleased
     }//GEN-LAST:event_routeKeyReleased
-
+    public void enableAnalyzeBtn() {
+        if (route.getText().trim().equals("Load XML file (max. 5 MB)...")) {
+            analyzeCodeBtn.setEnabled(false);
+        } else {
+            analyzeCodeBtn.setEnabled(true);
+        }
+    }
     private void routeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_routeActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_routeActionPerformed
@@ -313,10 +321,8 @@ public class ValidationFrame extends javax.swing.JFrame {
     /**
      * @param args the command line arguments
      */
-    public static Document doc;
-    
     public static void main(String args[]) {
-        
+
 
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
@@ -368,11 +374,40 @@ public class ValidationFrame extends javax.swing.JFrame {
     private javax.swing.JTextField route;
     private javax.swing.JTextArea validationResult;
     // End of variables declaration//GEN-END:variables
+    
+    public static Document doc;
+    
+    public static StringBuilder errors;
+
+    public enum NodeType {
+        PROCESS("Process"),
+        STEP("Step"),
+        ACTION("Action");
+
+        private final String nodeName;
+
+        NodeType(String nodeName) {
+            this.nodeName = nodeName;
+        }
+
+        public String getNodeName() {
+            return nodeName;
+        }
+    }
+    private Element validateSingleProcess() {
+        NodeList processes= doc.getElementsByTagName("Process");
+        if(processes.getLength()!=1){
+            errors.append("- There is more than one process in the script");
+            return null;
+        }else{
+            return(Element) processes.item(0);
+        }
+        
+    }
 
     private String checks() {
-        if (doc == null) {
-            return "Please select a XML file.";
-        }
-        return "";
+        Element process = validateSingleProcess();
+        
+        return (String) errors.toString();
     }
 }
