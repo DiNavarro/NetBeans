@@ -128,7 +128,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         });
 
         jLabel2.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabel2.setText("Insert preefix client/department:");
+        jLabel2.setText("Insert prefix client/department:");
 
         jLabel1.setBackground(new java.awt.Color(153, 153, 153));
         jLabel1.setFont(new java.awt.Font("Segoe UI", 1, 14)); // NOI18N
@@ -417,43 +417,36 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     }
 
-    private void validateMandatory(org.w3c.dom.Element process) throws MandatoryException {
-        if (mandatory.isSelected(mandatoryYes.getModel())) {
-            if (!prefix.getText().trim().equals("Example: c_")) {
-                validatePrefix(process);
-            } else {
-                JOptionPane.showMessageDialog(null, "Please insert a prefix if you choose \"Yes\" on the mandatory question.");
-                throw new MandatoryException("No prefix insertion but choosed \"Yes\" on the mandatory question.");
-            }
-        }
-    }
-
     private void validatePrefix(org.w3c.dom.Element process) {
-        NodeList steps = process.getElementsByTagName("Step");
-        NodeList actions = process.getElementsByTagName("Action");
-        String prefixUser = prefix.getText();
+        if (!prefix.getText().trim().equals("Example: c_")) {
+            NodeList steps = process.getElementsByTagName("Step");
+            NodeList actions = process.getElementsByTagName("Action");
+            String prefixUser = prefix.getText();
 
-        if (!process.getAttribute("code").startsWith(prefixUser)) {
-            errors.append("- The process ").append(process.getAttribute("code")).append(" does not have the prefix \"").append(prefixUser).append("\"\n");
-        }
+            if (!process.getAttribute("code").startsWith(prefixUser)) {
+                errors.append("- The process \"").append(process.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+            }
 
-        for (int i = 0; i < steps.getLength(); i++) {
-            org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
-            String stepId = step.getAttribute("id");
+            for (int i = 0; i < steps.getLength(); i++) {
+                org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
+                String stepId = step.getAttribute("id");
 
-            if (!stepId.equals("Start") && !stepId.equals("Finish")) {
-                if (!stepId.startsWith(prefixUser)) {
-                    errors.append("- The step ").append(step.getAttribute("id")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                if (!stepId.equals("Start") && !stepId.equals("Finish")) {
+                    if (!stepId.startsWith(prefixUser)) {
+                        errors.append("- The step \"").append(step.getAttribute("id")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                    }
                 }
             }
-        }
 
-        for (int i = 0; i < actions.getLength(); i++) {
-            org.w3c.dom.Element action = (org.w3c.dom.Element) actions.item(i);
+            for (int i = 0; i < actions.getLength(); i++) {
+                org.w3c.dom.Element action = (org.w3c.dom.Element) actions.item(i);
 
-            if (!action.getAttribute("code").startsWith(prefixUser)) {
-                errors.append("- The action ").append(action.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                if (!action.getAttribute("code").startsWith(prefixUser)) {
+                    errors.append("- The action \"").append(action.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                }
             }
+        } else {
+            JOptionPane.showMessageDialog(null, "Please insert a prefix");
         }
     }
 
@@ -473,7 +466,47 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
         }
         if (!foundLanguagesSet.containsAll(languagesSet)) {
-            errors.append("- The " + "type" + " \"" + "identifier" + "\" does not have a description in all languages");
+            errors.append("- The type" + " \"" + "identifier" + "\" does not have a description in all languages");
+        }
+    }
+
+    // JAVI
+    private void validateMandatory(org.w3c.dom.Element process) {
+        if (mandatory.isSelected(mandatoryYes.getModel())) {
+            validateProcessDepartment(process);
+        }
+    }
+
+    private void validateProcessDepartment(org.w3c.dom.Element process) {
+        NodeList nlsList = process.getChildNodes();
+        for (int i = 0; i < nlsList.getLength(); i++) {
+            Node node = nlsList.item(i);
+            if (node.getNodeType() == Node.ELEMENT_NODE && node.getNodeName().equals("nls")) {
+                org.w3c.dom.Element nlsTag = (org.w3c.dom.Element) node;
+                if (!nlsTag.getAttribute("name").matches("^\\([A-Z]+\\)\\s+.*")) {
+                    errors.append("- The attribute \"name\" of process \"").append(process.getAttribute("code")).append("\" does not indicate the department concerned\n");
+                }
+            }
+        }
+    }
+    
+    //JAVI
+    private void avoidMissedSteps(org.w3c.dom.Element process) {
+        NodeList steps = process.getElementsByTagName("Step");
+        for (int i = 0; i < steps.getLength(); i++) {
+            Node node = steps.item(i);
+            org.w3c.dom.Element step = (org.w3c.dom.Element) node;
+            
+            int currentSeqNo = Integer.parseInt(step.getAttribute("sequenceNo"));
+            boolean hasPrevious = (i > 0 && Integer.parseInt(((org.w3c.dom.Element) steps.item(i - 1)).getAttribute("sequenceNo")) == currentSeqNo - 1);
+            boolean hasNext = (i < steps.getLength() - 1 && Integer.parseInt(((org.w3c.dom.Element) steps.item(i + 1)).getAttribute("sequenceNo")) == currentSeqNo + 1);
+
+            if (!hasPrevious && i != 0) {
+                errors.append("Step \"" + step.getAttribute("id") + "\" is missing a previous step.");
+            }
+            if (!hasNext && i != steps.getLength() - 1) {
+                errors.append("Step \"" + step.getAttribute("id") + "\" is missing a next step.");
+            }
         }
     }
 
@@ -482,16 +515,9 @@ public class ValidationFrame extends javax.swing.JFrame {
         // OBTAINING THE PROCESS
         org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
 
-// ERROR CHECKING
+        // ERROR CHECKING
         // 1-- Mandatory check and prefix checks
-        try {
-            validateMandatory(process);
-        } catch (MandatoryException e) {
-            return "Execution stopped due to: " + e.getMessage();
-        }
-        if (errors.length() == 0) {
-            errors.append("");
-        }
+        validatePrefix(process);
 
         // 2-- lENGUAGES VALIDATION
         validateDescriptionLanguages(process);
@@ -500,6 +526,14 @@ public class ValidationFrame extends javax.swing.JFrame {
         if (errors.toString().equals("")) {
             resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
         }
+
+        //JAVI
+        // 4-- Mandatory check and department validation
+        validateMandatory(process);
+        
+        // 5-- Avoid missed steps
+        avoidMissedSteps(process);
+        
         return (String) errors.toString();
     }
 }
