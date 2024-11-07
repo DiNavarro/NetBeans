@@ -516,10 +516,10 @@ public class ValidationFrame extends javax.swing.JFrame {
             boolean hasNext = (i < steps.getLength() - 1 && Integer.parseInt(((org.w3c.dom.Element) steps.item(i + 1)).getAttribute("sequenceNo")) == currentSeqNo + 1);
 
             if (!hasPrevious && i != 0) {
-                errors.append("Step \"" + step.getAttribute("id") + "\" is missing a previous step.");
+                errors.append("Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a previous step\n");
             }
             if (!hasNext && i != steps.getLength() - 1) {
-                errors.append("Step \"" + step.getAttribute("id") + "\" is missing a next step.");
+                errors.append("Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a next step\n");
             }
         }
     }
@@ -527,7 +527,7 @@ public class ValidationFrame extends javax.swing.JFrame {
     private String checks() {
 
         new Thread(() -> {
-            
+
             try {
                 // OBTAINING THE PROCESS
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
@@ -538,21 +538,16 @@ public class ValidationFrame extends javax.swing.JFrame {
                 validatePrefix(process);
                 progressBar.setValue(progressBar.getValue() + 10);
                 Thread.sleep(1000);
-                // 2-- lENGUAGES VALIDATION
+                // 2-- Languages validation
                 validateDescriptionLanguages(process);
                 progressBar.setValue(progressBar.getValue() + 10);
                 Thread.sleep(1000);
-                // 3--  Name of the process
-                if (errors.toString().equals("")) {
-                    resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
-                }
-
                 //JAVI
-                // 4-- Mandatory check and department validation
+                // 3-- Mandatory check and department validation
                 validateMandatory(process);
                 progressBar.setValue(progressBar.getValue() + 10);
                 Thread.sleep(1000);
-                // 5-- Avoid missed steps
+                // 4-- Avoid missed steps
                 avoidMissedSteps(process);
                 progressBar.setValue(progressBar.getValue() + 10);
                 Thread.sleep(1000);
@@ -560,6 +555,10 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
 
         }).start();
+
+        if (errors.toString().equals("")) {
+            resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
+        }
 
         return (String) errors.toString();
     }
