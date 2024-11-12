@@ -423,7 +423,7 @@ public class ValidationFrame extends javax.swing.JFrame {
     private org.w3c.dom.Element validateSingleProcess() {
         NodeList processes = doc.getElementsByTagName("Process");
         if (processes.getLength() != 1) {
-            errors.append("- There is more than one process in the script");
+            errors.append("- ERROR: There is more than one process in the script");
             return null;
         } else {
             return (org.w3c.dom.Element) processes.item(0);
@@ -438,7 +438,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             String prefixUser = prefix.getText();
 
             if (!process.getAttribute("code").startsWith(prefixUser)) {
-                errors.append("- The process \"").append(process.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                errors.append("- ERROR: The process \"").append(process.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
             }
 
             for (int i = 0; i < steps.getLength(); i++) {
@@ -447,7 +447,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
                 if (!stepId.equals("Start") && !stepId.equals("Finish")) {
                     if (!stepId.startsWith(prefixUser)) {
-                        errors.append("- The step \"").append(step.getAttribute("id")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                        errors.append("- ERROR: The step \"").append(step.getAttribute("id")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
                     }
                 }
             }
@@ -456,7 +456,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 org.w3c.dom.Element action = (org.w3c.dom.Element) actions.item(i);
 
                 if (!action.getAttribute("code").startsWith(prefixUser)) {
-                    errors.append("- The action \"").append(action.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                    errors.append("- ERROR: The action \"").append(action.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
                 }
             }
         } else {
@@ -480,7 +480,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
         }
         if (!foundLanguagesSet.containsAll(languagesSet)) {
-            errors.append("- The type" + " \"" + "identifier" + "\" does not have a description in all languages");
+            errors.append("- ERROR: The type" + " \"" + "identifier" + "\" does not have a description in all languages");
         }
     }
 
@@ -493,14 +493,20 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     private void validateProcessDepartment(org.w3c.dom.Element process) {
         NodeList nlsList = process.getChildNodes();
+        boolean hasDepartment = true;
+
         for (int i = 0; i < nlsList.getLength(); i++) {
             Node node = nlsList.item(i);
             if (node.getNodeType() == Node.ELEMENT_NODE && node.getNodeName().equals("nls")) {
                 org.w3c.dom.Element nlsTag = (org.w3c.dom.Element) node;
                 if (!nlsTag.getAttribute("name").matches("^\\([A-Z]+\\)\\s+.*")) {
-                    errors.append("- The attribute \"name\" of process \"").append(process.getAttribute("code")).append("\" does not indicate the department concerned\n");
+                    hasDepartment = false;
                 }
             }
+        }
+
+        if (!hasDepartment) {
+            errors.append("- ERROR: The attribute \"name\" of process \"").append(process.getAttribute("code")).append("\" does not indicate the department concerned\n");
         }
     }
 
@@ -516,10 +522,10 @@ public class ValidationFrame extends javax.swing.JFrame {
             boolean hasNext = (i < steps.getLength() - 1 && Integer.parseInt(((org.w3c.dom.Element) steps.item(i + 1)).getAttribute("sequenceNo")) == currentSeqNo + 1);
 
             if (!hasPrevious && i != 0) {
-                errors.append("Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a previous step\n");
+                errors.append("- ERROR: Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a previous step\n");
             }
             if (!hasNext && i != steps.getLength() - 1) {
-                errors.append("Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a next step\n");
+                errors.append("- ERROR: Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a next step\n");
             }
         }
     }
@@ -534,7 +540,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
             Document globalVariables = dBuilder.parse(variablesFile);
             globalVariables.getDocumentElement().normalize();
-            
+
             if (globalVariables == null) {
                 System.out.println("Global variables null");
                 return;
@@ -557,7 +563,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
                     if (nameVar1.equals(nameVar2)) {
                         if (!valueVar1.equals(valueVar2)) {
-                            errors.append("Value in " + nameVar2 + " is not equal to " + valueVar1+"\n");
+                            errors.append("- ERROR: Value in " + nameVar2 + " is not equal to " + valueVar1 + "\n");
                             matches = false;
                         }
                         found = true;
@@ -565,12 +571,12 @@ public class ValidationFrame extends javax.swing.JFrame {
                     }
                 }
                 if (!found) {
-                    errors.append("Variable not found: " + nameVar1+"\n");
+                    errors.append("- ERROR: Variable not found: " + nameVar1 + "\n");
                     matches = false;
                 }
             }
-            if(matches){
-                errors.append("Global variables do not match.\n");
+            if (matches) {
+                errors.append("- ERROR: Global variables do not match.\n");
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -603,41 +609,9 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
 
         if (!finishStepFound) {
-            errors.append("Could not validate process header, \"Finish\" step not found\n");
+            errors.append("- ERROR: Could not validate process header, \"Finish\" step not found\n");
         } else if (!gelScriptValid) {
-            errors.append("The process does not contain an appropriate header\n");
-        }
-    }
-
-    //JAVI
-    private void validateComments(org.w3c.dom.Element process) {
-        NodeList scripts = process.getElementsByTagName("customScript");
-        boolean foundComment = false, moreThan100 = false;
-        int lineCounter = 0;
-        for (int i = 0; i < scripts.getLength(); i++) {
-            org.w3c.dom.Element script = (org.w3c.dom.Element) scripts.item(i);
-            NodeList childNodes = script.getChildNodes();
-            for (int j = 0; j < childNodes.getLength(); j++) {
-                org.w3c.dom.Element childNode = (org.w3c.dom.Element) childNodes.item(j);
-                if (childNode.getNodeType() == Node.COMMENT_NODE) {
-                    foundComment = true;
-                }
-                if (childNode.getNodeType() == Node.TEXT_NODE) {
-                    lineCounter++;
-                }
-                if (lineCounter >= 100) {
-                    if (!foundComment) {
-                        moreThan100 = true;
-                        errors.append("There are fewer than 100 comments in one of the scripts\n");
-                        break;
-                    }
-                    lineCounter = 0;
-                    foundComment = false;
-                }
-            }
-        }
-        if (moreThan100) {
-            errors.append("There are few comments in one of the scripts");
+            errors.append("- ERROR: The process does not contain an appropriate header\n");
         }
     }
 
@@ -662,6 +636,81 @@ public class ValidationFrame extends javax.swing.JFrame {
                 && "http://www.w3.org/1999/XSL/Transform".equals(gelScript.getAttribute("xmlns:xsl"));
     }
 
+    //JAVI
+    private void validateComments(org.w3c.dom.Element process) {
+        NodeList scripts = process.getElementsByTagName("customScript");
+        boolean foundComment = false;
+        boolean moreThan100 = false;
+        int lineCounter = 0;
+
+        for (int i = 0; i < scripts.getLength(); i++) {
+            org.w3c.dom.Element script = (org.w3c.dom.Element) scripts.item(i);
+            NodeList childNodes = script.getChildNodes();
+
+            for (int j = 0; j < childNodes.getLength(); j++) {
+                Node childNode = childNodes.item(j);
+
+                if (childNode.getNodeType() == Node.COMMENT_NODE) {
+                    foundComment = true;
+                } else if (childNode.getNodeType() == Node.TEXT_NODE) {
+                    lineCounter++;
+                }
+
+                if (lineCounter >= 100) {
+                    if (!foundComment) {
+                        moreThan100 = true;
+                        errors.append("- ERROR: There are fewer than 100 comments in one of the scripts\n");
+                        break;
+                    }
+
+                    // Reset counters for the next block of 100 lines
+                    lineCounter = 0;
+                    foundComment = false;
+                }
+            }
+
+            if (moreThan100) {
+                break;
+            }
+        }
+
+        if (moreThan100) {
+            errors.append("- ERROR: There are few comments in one of the scripts\n");
+        }
+    }
+
+    //JAVI
+    private void validateVgDebugParameter(org.w3c.dom.Element process) {
+        NodeList gelScripts = process.getElementsByTagName("gel:script");
+
+        for (int i = 0; i < gelScripts.getLength(); i++) {
+            org.w3c.dom.Element gelScript = (org.w3c.dom.Element) gelScripts.item(i);
+            NodeList gelParameters = gelScript.getElementsByTagName("gel:parameter");
+
+            boolean hasVgDebugParameter = false;
+
+            for (int j = 0; j < gelParameters.getLength(); j++) {
+                Node parameter = gelParameters.item(j);
+
+                if (parameter.getNodeType() == Node.ELEMENT_NODE) {
+                    org.w3c.dom.Element elementNode = (org.w3c.dom.Element) parameter;
+
+                    String varAttribute = elementNode.getAttribute("var");
+                    String defaultAttribute = elementNode.getAttribute("default");
+
+                    if ("vg_debug".equals(varAttribute) && "0".equals(defaultAttribute)) {
+                        hasVgDebugParameter = true;
+                        break;
+                    }
+                }
+            }
+
+            if (!hasVgDebugParameter) {
+                errors.append("- ERROR: Process script " + (i + 1) + " is missing the vg_debug parameter or has an incorrect one\n");
+            }
+        }
+    }
+
     private void loading() {
         try {
             progressBar.setValue(progressBar.getValue() + 10);
@@ -679,30 +728,39 @@ public class ValidationFrame extends javax.swing.JFrame {
                 // OBTAINING THE PROCESS
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
                 loading();
+                
                 // ERROR CHECKING
                 // 1-- Mandatory check and prefix checks
                 validatePrefix(process);
                 loading();
+                
                 // 2-- Languages validation
                 validateDescriptionLanguages(process);
                 loading();
-                //JAVI
+                
                 // 3-- Mandatory check and department validation
                 validateMandatory(process);
                 loading();
+                
                 // 4-- Avoid missed steps
                 avoidMissedSteps(process);
                 loading();
+                
                 // 5-- Global Variables
                 validateGlobalVariable(process);
                 loading();
+                
                 // 6-- Validate process header
                 validateProcessHeader(process);
                 loading();
+                
                 // 7-- Validate comments
                 validateComments(process);
                 loading();
-
+                
+                // 8-- Validate vg_debug parameter
+                validateVgDebugParameter(process);
+                loading();
             } catch (Exception e) {
             }
 
