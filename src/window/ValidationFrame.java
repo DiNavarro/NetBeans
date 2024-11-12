@@ -524,33 +524,185 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    private String checks() {
+    private void validateGlobalVariable(org.w3c.dom.Element process) {
+        String variablesPath = "src/document/globalVariables.xml";
 
+        try {
+            File variablesFile = new File(variablesPath);
+            DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+            DocumentBuilder dBuilder = dbf.newDocumentBuilder();
+
+            Document globalVariables = dBuilder.parse(variablesFile);
+            globalVariables.getDocumentElement().normalize();
+            
+            if (globalVariables == null) {
+                System.out.println("Global variables null");
+                return;
+            }
+
+            NodeList variablesOriginal = globalVariables.getElementsByTagName("core:set");
+            NodeList variablesToCheck = process.getElementsByTagName("core:set");
+
+            boolean matches = true;
+            for (int i = 0; i < variablesOriginal.getLength(); i++) {
+                org.w3c.dom.Element var1 = (org.w3c.dom.Element) variablesOriginal.item(i);
+                String nameVar1 = var1.getAttribute("var").trim();
+                String valueVar1 = var1.getAttribute("value").trim();
+
+                boolean found = false;
+                for (int j = 0; j < variablesToCheck.getLength(); j++) {
+                    org.w3c.dom.Element var2 = (org.w3c.dom.Element) variablesToCheck.item(j);
+                    String nameVar2 = var2.getAttribute("var").trim();
+                    String valueVar2 = var2.getAttribute("value").trim();
+
+                    if (nameVar1.equals(nameVar2)) {
+                        if (!valueVar1.equals(valueVar2)) {
+                            errors.append("Value in " + nameVar2 + " is not equal to " + valueVar1+"\n");
+                            matches = false;
+                        }
+                        found = true;
+                        break;
+                    }
+                }
+                if (!found) {
+                    errors.append("Variable not found: " + nameVar1+"\n");
+                    matches = false;
+                }
+            }
+            if(matches){
+                errors.append("Global variables do not match.\n");
+            }
+        } catch (Exception e) {
+            System.out.println(e.getMessage());
+        }
+    }
+
+    //JAVI
+    private void validateProcessHeader(org.w3c.dom.Element process) {
+        NodeList steps = process.getElementsByTagName("Step");
+        boolean finishStepFound = false;
+        boolean gelScriptValid = false;
+
+        for (int i = 0; i < steps.getLength(); i++) {
+            org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
+            if (step.getAttribute("id").equals("Finish")) {
+                finishStepFound = true;
+                NodeList scriptTexts = step.getElementsByTagName("scriptText");
+
+                if (scriptTexts.getLength() > 0) {
+                    org.w3c.dom.Element scriptText = (org.w3c.dom.Element) scriptTexts.item(0);
+                    NodeList gelScripts = scriptText.getElementsByTagName("gel:script");
+
+                    if (gelScripts.getLength() > 0) {
+                        org.w3c.dom.Element gelScript = (org.w3c.dom.Element) gelScripts.item(0);
+                        gelScriptValid = checkHeader(gelScript);
+                    }
+                }
+                break;
+            }
+        }
+
+        if (!finishStepFound) {
+            errors.append("Could not validate process header, \"Finish\" step not found\n");
+        } else if (!gelScriptValid) {
+            errors.append("The process does not contain an appropriate header\n");
+        }
+    }
+
+    //JAVI
+    private void validateComments(org.w3c.dom.Element process) {
+        NodeList scripts = process.getElementsByTagName("customScript");
+        boolean foundComment = false, moreThan100 = false;
+        int lineCounter = 0;
+        for (int i = 0; i < scripts.getLength(); i++) {
+            org.w3c.dom.Element script = (org.w3c.dom.Element) scripts.item(i);
+            NodeList childNodes = script.getChildNodes();
+            for (int j = 0; j < childNodes.getLength(); j++) {
+                org.w3c.dom.Element childNode = (org.w3c.dom.Element) childNodes.item(j);
+                if (childNode.getNodeType() == Node.COMMENT_NODE) {
+                    foundComment = true;
+                }
+                if (childNode.getNodeType() == Node.TEXT_NODE) {
+                    lineCounter++;
+                }
+                if (lineCounter >= 100) {
+                    if (!foundComment) {
+                        moreThan100 = true;
+                        errors.append("There are fewer than 100 comments in one of the scripts\n");
+                        break;
+                    }
+                    lineCounter = 0;
+                    foundComment = false;
+                }
+            }
+        }
+        if (moreThan100) {
+            errors.append("There are few comments in one of the scripts");
+        }
+    }
+
+    private boolean checkHeader(org.w3c.dom.Element gelScript) {
+        return "http://schemas.xmlsoap.org/soap/envelope/".equals(gelScript.getAttribute("xmlns:SOAP-ENV"))
+                && "jelly:com.niku.bpm.gel.BPMTagLibrary".equals(gelScript.getAttribute("xmlns:bpm"))
+                && "jelly:core".equals(gelScript.getAttribute("xmlns:core"))
+                && "jelly:email".equals(gelScript.getAttribute("xmlns:email"))
+                && "jelly:com.niku.union.gel.FileTagLibrary".equals(gelScript.getAttribute("xmlns:file"))
+                && "jelly:com.niku.union.gel.GELTagLibrary".equals(gelScript.getAttribute("xmlns:gel"))
+                && "jelly:com.niku.union.gel.RemedyTagLibrary".equals(gelScript.getAttribute("xmlns:rem"))
+                && "urn:HelpDesk_Query_Service".equals(gelScript.getAttribute("xmlns:remedy"))
+                && "jelly:com.niku.union.gel.SOAPTagLibrary".equals(gelScript.getAttribute("xmlns:soap"))
+                && "http://schemas.xmlsoap.org/soap/encoding/".equals(gelScript.getAttribute("xmlns:soapenc"))
+                && "http://schemas.xmlsoap.org/soap/envelope/".equals(gelScript.getAttribute("xmlns:soapenv"))
+                && "jelly:sql".equals(gelScript.getAttribute("xmlns:sql"))
+                && "jelly:util".equals(gelScript.getAttribute("xmlns:util"))
+                && "jelly:org.apache.commons.jelly.tags.xml.XMLTagLibrary".equals(gelScript.getAttribute("xmlns:x"))
+                && "http://www.niku.com/xog".equals(gelScript.getAttribute("xmlns:xog"))
+                && "http://www.w3.org/2001/XMLSchema".equals(gelScript.getAttribute("xmlns:xsd"))
+                && "http://www.w3.org/2001/XMLSchema-instance".equals(gelScript.getAttribute("xmlns:xsi"))
+                && "http://www.w3.org/1999/XSL/Transform".equals(gelScript.getAttribute("xmlns:xsl"));
+    }
+
+    private void loading() {
+        try {
+            progressBar.setValue(progressBar.getValue() + 10);
+            Thread.sleep(1000);
+        } catch (Exception e) {
+
+        }
+    }
+
+    private String checks() {
+        progressBar.setValue(0);
         new Thread(() -> {
 
             try {
                 // OBTAINING THE PROCESS
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
-                progressBar.setValue(progressBar.getValue() + 10);
-                Thread.sleep(1000);
+                loading();
                 // ERROR CHECKING
                 // 1-- Mandatory check and prefix checks
                 validatePrefix(process);
-                progressBar.setValue(progressBar.getValue() + 10);
-                Thread.sleep(1000);
+                loading();
                 // 2-- Languages validation
                 validateDescriptionLanguages(process);
-                progressBar.setValue(progressBar.getValue() + 10);
-                Thread.sleep(1000);
+                loading();
                 //JAVI
                 // 3-- Mandatory check and department validation
                 validateMandatory(process);
-                progressBar.setValue(progressBar.getValue() + 10);
-                Thread.sleep(1000);
+                loading();
                 // 4-- Avoid missed steps
                 avoidMissedSteps(process);
-                progressBar.setValue(progressBar.getValue() + 10);
-                Thread.sleep(1000);
+                loading();
+                // 5-- Global Variables
+                validateGlobalVariable(process);
+                loading();
+                // 6-- Validate process header
+                validateProcessHeader(process);
+                loading();
+                // 7-- Validate comments
+                validateComments(process);
+                loading();
+
             } catch (Exception e) {
             }
 
