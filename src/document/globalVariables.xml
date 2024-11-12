@@ -1,0 +1,83 @@
+<gel:script xmlns="http://www.w3.org/2001/XMLSchema" xmlns:core="jelly:core"
+    xmlns:gel="jelly:com.niku.union.gel.GELTagLibrary" xmlns:sql="jelly:sql" xmlns:util="jelly:util"
+    xmlns:xog="http://www.niku.com/xog" xmlns:xsd="http://www.w3.org/2001/XMLSchema"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+    <gel:setDataSource dbId="niku" />
+    <!-- Set Clarity Parameters -->
+    <!-- *** Fetch the clarity’s parameter from Property File ***  -->
+    <core:invokeStatic className="com.niku.union.config.ConfigurationManager" method="getInstance"
+        var="thisClarityConfig" />
+    <!-- *** Fetch the clarity’s Version ***  -->
+    <core:set value="${thisClarityConfig.getVersionProperty('version')}" var="vg_clarityVersion" />
+    <!-- *** Fetch the clarity’s Application URL *** -->
+    <core:set
+        value="${thisClarityConfig.getProperties().getWebServer().getWebServerInstance(0).getEntryUrl()}"
+        var="AppEntryUrl" />
+    <core:set
+        value="${thisClarityConfig.getProperties().getWebServer().getWebServerInstance(0).getSslEntryUrl()}"
+        var="AppSslEntryUrl" />
+    <!-- *** no method for rest context, using gel parameter *** -->
+    <core:set value="${AppEntryUrl}" var="vg_clarityBaseUrl" />
+    <core:set value="${AppSslEntryUrl}" var="vg_claritySslBaseUrl" />
+    <core:set value="${AppEntryUrl}/niku/xog" var="vg_clarityXogUrl" />
+    <core:set value="${AppSslEntryUrl}/ppm/rest/v1" var="vg_clarityRestUrl" />
+    <!-- *** Set parameters *** -->
+    <gel:parameter default="1" var="DebugVgParameters" />
+    <!-- *** Set debug for VG variables *** -->
+    <gel:parameter default="1" var="vg_debug" />
+    <!-- *** Set debug for script debug purposes *** -->
+    <gel:parameter default="admin" var="vg_userName" />
+    <!-- Obtenemos un sessionID para la conexión a Clarity -->
+    <core:new className="com.niku.union.security.DefaultSecurityIdentifier" var="secId" />
+    <core:invokeStatic className="com.niku.union.security.UserSessionControllerFactory"
+        method="getInstance" var="userSessionCtrl" />
+    <core:set value="${userSessionCtrl.init(vg_userName, secId)}" var="secId" />
+    <core:set value="${secId.getSessionId()}" var="vg_sessionID" />
+    <core:if test="${vg_sessionID == null}">
+        <gel:log level="ERROR">No se pudo hacer login en Clarity por sessionID. Comprueba los
+            parámetros de conexión.</gel:log>
+    </core:if>
+    <!-- *** Fetch the clarity’s Application Mail *** -->
+    <core:set value="${thisClarityConfig.getProperties().getMailServer()}" var="AppMailServer" />
+    <core:set value="${thisClarityConfig.getProperties().getMailServer().getDefaultSenderAddress()}"
+        var="AppMailSender" />
+    <core:set value="${AppMailServer}" var="vg_mailServer" />
+    <core:set value="${AppMailSender}" var="vg_mailSender" />
+    <!-- *** Fetch the SSO Session *** -->
+    <core:set value="" var="vg_apiKey" />
+    <!-- <sql:query escapeText="false" var="v_query"> -->
+    <!-- <![CDATA[ -->
+    <!-- SELECT z_api_key API FROM ODF_CA_Z_API_KEY WHERE code = 'z_system' -->
+    <!-- ]]> -->
+    <!-- </sql:query> -->
+    <!-- <core:set value="${v_query.rows[0].API}" var="vg_apiKey"/> -->
+    <!-- ***************************************************************** -->
+    <!-- Persist the parameters through the process -->
+    <!-- ***************************************************************** -->
+    <gel:persist scope="INSTANCE" var="vg_clarityVersion">${vg_clarityVersion}</gel:persist>
+    <gel:persist scope="INSTANCE" var="vg_clarityBaseUrl">${vg_clarityBaseUrl}</gel:persist>
+    <gel:persist scope="INSTANCE" var="vg_claritySslBaseUrl">${vg_claritySslBaseUrl}</gel:persist>
+    <gel:persist scope="INSTANCE" var="vg_clarityXogUrl">${vg_clarityXogUrl}</gel:persist>
+    <gel:persist scope="INSTANCE" var="vg_clarityRestUrl">${vg_clarityRestUrl}</gel:persist>
+    <gel:persist scope="INSTANCE" var="vg_userName">${vg_userName}</gel:persist>
+    <gel:persist scope="INSTANCE" var="vg_sessionID">${vg_sessionID}</gel:persist>
+    <gel:persist scope="INSTANCE" var="vg_mailServer">${vg_mailServer}</gel:persist>
+    <gel:persist scope="INSTANCE" var="vg_mailSender">${vg_mailSender}</gel:persist>
+    <gel:persist scope="INSTANCE" var="vg_apiKey">${vg_apiKey}</gel:persist>
+    <core:if test="${DebugVgParameters == 1}">
+        <!-- <gel:log level="INFO">******************************Clarity
+        Parameter’s******************************</gel:log> -->
+        <gel:log level="INFO">ClarityVersion : ${vg_clarityVersion}</gel:log>
+        <!-- <gel:log level="INFO">ClarityBaseUrl	: ${vg_clarityBaseUrl} </gel:log> -->
+        <gel:log level="INFO">ClaritySslBaseUrl : ${vg_claritySslBaseUrl} </gel:log>
+        <!-- <gel:log level="INFO">ClarityXogUrl	: ${vg_clarityXogUrl}</gel:log> -->
+        <!-- <gel:log level="INFO">ClarityRestUrl	: ${vg_clarityRestUrl}</gel:log> -->
+        <gel:log level="INFO">UserName : ${vg_userName}</gel:log>
+        <gel:log level="INFO">SessionID : ${vg_sessionID}</gel:log>
+        <!-- <gel:log level="INFO">MailServer		: ${vg_mailServer}</gel:log> -->
+        <gel:log level="INFO">MailSender : ${vg_mailSender}</gel:log>
+        <gel:log level="INFO">ApiKey : ${vg_apiKey}</gel:log>
+        <!-- <gel:log
+        level="INFO">*******************************************************************************</gel:log> -->
+    </core:if>
+</gel:script>
