@@ -738,7 +738,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     private void stepsValidation(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("step");
-        boolean hasIntermediateStep = false; 
+        boolean hasIntermediateStep = false;
 
         if (steps.getLength() < 3) {
             errors.append("- ERROR: We need at least one intermediate step.\n");
@@ -756,6 +756,19 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         if (!hasIntermediateStep) {
             errors.append("- ERROR: We need at least one intermediate step.\n");
+        }
+    }
+
+    private void validateNoXogWrites(org.w3c.dom.Element process) {
+        NodeList soapInvokes = process.getElementsByTagName("soap:invoke");
+        
+        for (int i = 0; i < soapInvokes.getLength(); i++) {
+            org.w3c.dom.Element soapInvoke = (org.w3c.dom.Element) soapInvokes.item(i);
+            String endpoint = soapInvoke.getAttribute("endpoint");
+            
+            if (endpoint!=null&&endpoint.contains("/niku/xog")) {
+                errors.append("- WARNING: Found a XOG write operation\n");
+            }
         }
     }
 
@@ -816,9 +829,12 @@ public class ValidationFrame extends javax.swing.JFrame {
                 // 9-- Validate direct URL's
                 containsDirectURL(process);
                 loading();
+
+                // 11-- Validate no XOG writes
+                validateNoXogWrites(process);
+                loading();
             } catch (Exception e) {
             }
-
         }).start();
 
         if (errors.toString().equals("")) {
