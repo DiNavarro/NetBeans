@@ -711,9 +711,57 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
+    private void containsDirectURL(org.w3c.dom.Element process) {
+        String[] urlPatterns = {"http://", "https://"};
+        if (checkForURL(process, urlPatterns)) {
+            errors.append("- ERROR: There is a direct URL\n");
+        }
+    }
+
+    private boolean checkForURL(Node node, String[] urlPatterns) {
+        if (node.getNodeType() == Node.TEXT_NODE || node.getNodeType() == Node.ATTRIBUTE_NODE) {
+            String textContent = node.getTextContent();
+            for (String pattern : urlPatterns) {
+                if (textContent.contains(pattern)) {
+                    return true;
+                }
+            }
+        }
+        NodeList children = node.getChildNodes();
+        for (int i = 0; i < children.getLength(); i++) {
+            if (checkForURL(children.item(i), urlPatterns)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private void stepsValidation(org.w3c.dom.Element process) {
+        NodeList steps = process.getElementsByTagName("step");
+        boolean hasIntermediateStep = false; 
+
+        if (steps.getLength() < 3) {
+            errors.append("- ERROR: We need at least one intermediate step.\n");
+            return;
+        }
+
+        for (int i = 0; i < steps.getLength(); i++) {
+            org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
+            String stepId = step.getAttribute("id");
+            if (!"Start".equals(stepId) && !"Finish".equals(stepId)) {
+                hasIntermediateStep = true;
+                break;
+            }
+        }
+
+        if (!hasIntermediateStep) {
+            errors.append("- ERROR: We need at least one intermediate step.\n");
+        }
+    }
+
     private void loading() {
         try {
-            progressBar.setValue(progressBar.getValue() + 10);
+            progressBar.setValue(progressBar.getValue() + 5);
             Thread.sleep(1000);
         } catch (Exception e) {
 
@@ -727,39 +775,46 @@ public class ValidationFrame extends javax.swing.JFrame {
             try {
                 // OBTAINING THE PROCESS
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
-                loading();
-                
+
                 // ERROR CHECKING
+                // 10-- validate steps
+                stepsValidation(process);
+                loading();
+
                 // 1-- Mandatory check and prefix checks
                 validatePrefix(process);
                 loading();
-                
+
                 // 2-- Languages validation
                 validateDescriptionLanguages(process);
                 loading();
-                
+
                 // 3-- Mandatory check and department validation
                 validateMandatory(process);
                 loading();
-                
+
                 // 4-- Avoid missed steps
                 avoidMissedSteps(process);
                 loading();
-                
+
                 // 5-- Global Variables
                 validateGlobalVariable(process);
                 loading();
-                
+
                 // 6-- Validate process header
                 validateProcessHeader(process);
                 loading();
-                
+
                 // 7-- Validate comments
                 validateComments(process);
                 loading();
-                
+
                 // 8-- Validate vg_debug parameter
                 validateVgDebugParameter(process);
+                loading();
+
+                // 9-- Validate direct URL's
+                containsDirectURL(process);
                 loading();
             } catch (Exception e) {
             }
