@@ -6,8 +6,10 @@ import java.io.File;
 import java.io.FileReader;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.List;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -21,7 +23,6 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
 import org.xml.sax.SAXException;
-
 
 public class ValidationFrame extends javax.swing.JFrame {
 
@@ -343,7 +344,9 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    public static int getLineNumberForTag(String tag) {
+    public static List<Integer> getLineNumberForTag(String tag) {
+        List<Integer> lineNumbers = new ArrayList<>();
+
         try (BufferedReader reader = new BufferedReader(new FileReader(xmlFile))) {
             String line;
             int lineNumber = 0;
@@ -351,16 +354,15 @@ public class ValidationFrame extends javax.swing.JFrame {
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
 
-                // Si la línea contiene la etiqueta, devuelve el número de línea
                 if (line.contains(tag)) {
-                    return lineNumber;
+                    lineNumbers.add(lineNumber);
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
         }
 
-        return -1; // Si no se encuentra la etiqueta, devuelve -1
+        return lineNumbers;
     }
 
     /**
@@ -552,7 +554,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    private void validateGlobalVariable(org.w3c.dom.Element process) {
+    private void validateGlobalVariables(org.w3c.dom.Element process) {
         String variablesPath = "src/document/globalVariables.xml";
 
         try {
@@ -789,9 +791,19 @@ public class ValidationFrame extends javax.swing.JFrame {
             String endpoint = soapInvoke.getAttribute("endpoint");
 
             if (endpoint != null && endpoint.contains("/niku/xog")) {
-                int lineNumber = getLineNumberForTag(soapInvoke.getNodeName());
-                errors.append("- WARNING: Found a XOG write operation at line ").append(lineNumber).append("\n");
+                List lineNumbers = getLineNumberForTag("<" + soapInvoke.getNodeName() + ">");
+                errors.append("- WARNING: Found a XOG write operation at line ").append(lineNumbers.get(i)).append("\n");
             }
+        }
+    }
+
+    private void validateNoUpdates(org.w3c.dom.Element process) {
+        NodeList sqlUpdates = process.getElementsByTagName("sql:update");
+
+        for (int i = 0; i < sqlUpdates.getLength(); i++) {
+            org.w3c.dom.Element sqlUpdate = (org.w3c.dom.Element) sqlUpdates.item(i);
+            List lineNumbers = getLineNumberForTag("<" + sqlUpdate.getNodeName() + ">");
+            errors.append("- WARNING: Found an update operation at line ").append(lineNumbers.get(i)).append("\n");
         }
     }
 
@@ -871,7 +883,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 incrementProgress();
 
                 // 5-- Global Variables
-                validateGlobalVariable(process);
+                validateGlobalVariables(process);
                 waitForOneSecond();
                 incrementProgress();
 
@@ -897,6 +909,11 @@ public class ValidationFrame extends javax.swing.JFrame {
 
                 // 11-- Validate no XOG writes
                 validateNoXogWrites(process);
+                waitForOneSecond();
+                incrementProgress();
+
+                // 12-- Validate no SQL updates operations (INSERT, UPDATE, DELETE)
+                validateNoUpdates(process);
                 waitForOneSecond();
                 incrementProgress();
 
