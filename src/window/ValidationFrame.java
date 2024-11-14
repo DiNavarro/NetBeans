@@ -917,6 +917,6 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         validationThread.start();
 
-        return "Validations in progres...";
+        return "Validations in progress...";
     }
 }
