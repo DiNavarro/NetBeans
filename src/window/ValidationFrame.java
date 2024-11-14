@@ -1,17 +1,22 @@
 package window;
 
 import java.awt.Color;
+import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileReader;
 
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashSet;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
+import javax.swing.SwingWorker;
 import javax.swing.filechooser.FileNameExtensionFilter;
-import javax.swing.text.Element;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -63,7 +68,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         prefix = new javax.swing.JTextField();
         jLabel2 = new javax.swing.JLabel();
         jLabel1 = new javax.swing.JLabel();
-        jButton2 = new javax.swing.JButton();
+        findXML = new javax.swing.JButton();
         route = new javax.swing.JTextField();
         resultSummary = new javax.swing.JLabel("<html>The process code is <span style='color: green;'>correct</span>. | The process code is <span style='color: red;'>incorrect</span>. | The process code <span style='color: orange;'>may contain errors</span>.</html>")
         ;
@@ -139,14 +144,14 @@ public class ValidationFrame extends javax.swing.JFrame {
         jLabel1.setName(""); // NOI18N
         jLabel1.setOpaque(true);
 
-        jButton2.setBackground(new java.awt.Color(204, 204, 204));
-        jButton2.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/Carpeta_prueba.png"))); // NOI18N
-        jButton2.setBorder(null);
-        jButton2.setBorderPainted(false);
-        jButton2.setContentAreaFilled(false);
-        jButton2.addActionListener(new java.awt.event.ActionListener() {
+        findXML.setBackground(new java.awt.Color(204, 204, 204));
+        findXML.setIcon(new javax.swing.ImageIcon(getClass().getResource("/images/Carpeta_prueba.png"))); // NOI18N
+        findXML.setBorder(null);
+        findXML.setBorderPainted(false);
+        findXML.setContentAreaFilled(false);
+        findXML.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
-                jButton2ActionPerformed(evt);
+                findXMLActionPerformed(evt);
             }
         });
 
@@ -206,7 +211,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                                     .addComponent(jLabel4)
                                     .addComponent(route, javax.swing.GroupLayout.PREFERRED_SIZE, 589, javax.swing.GroupLayout.PREFERRED_SIZE))
                                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
+                                .addComponent(findXML, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
                             .addComponent(analyzeCodeBtn, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(resultSummary, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                             .addComponent(jScrollPane1)
@@ -231,12 +236,12 @@ public class ValidationFrame extends javax.swing.JFrame {
                 .addComponent(jLabel4)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
                 .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addComponent(jButton2, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(findXML, javax.swing.GroupLayout.PREFERRED_SIZE, 22, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(route, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(analyzeCodeBtn, javax.swing.GroupLayout.PREFERRED_SIZE, 45, javax.swing.GroupLayout.PREFERRED_SIZE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(progressBar, javax.swing.GroupLayout.DEFAULT_SIZE, 21, Short.MAX_VALUE)
+                .addComponent(progressBar, javax.swing.GroupLayout.DEFAULT_SIZE, 24, Short.MAX_VALUE)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
                 .addComponent(jLabel5)
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
@@ -276,7 +281,9 @@ public class ValidationFrame extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_routeActionPerformed
 
-    private void jButton2ActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_jButton2ActionPerformed
+    private static File xmlFile;
+
+    private void findXMLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_findXMLActionPerformed
         JFileChooser fc = new JFileChooser();
         fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
@@ -293,20 +300,19 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
         }
 
-        String file = route.getText();
-        File xmlFile = new File(file);
+        String fileRoute = route.getText();
+        xmlFile = new File(fileRoute);
 
         try {
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
             DocumentBuilder dBuilder = dbf.newDocumentBuilder();
             doc = dBuilder.parse(xmlFile);
             doc.getDocumentElement().normalize();
-
         } catch (IOException | ParserConfigurationException | SAXException e) {
             JOptionPane.showMessageDialog(null, "Ocurrió un error: " + e.getMessage());
         }
         enableAnalyzeBtn();
-    }//GEN-LAST:event_jButton2ActionPerformed
+    }//GEN-LAST:event_findXMLActionPerformed
 
     private void prefixFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_prefixFocusLost
         if (prefix.getText().equals("")) {
@@ -330,6 +336,8 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         validationResult.setText(checks());
 
+        disableAll();
+
     }//GEN-LAST:event_analyzeCodeBtnActionPerformed
     public void enableAnalyzeBtn() {
         if (route.getText().trim().equals("Load XML file (max. 5 MB)...")) {
@@ -339,6 +347,26 @@ public class ValidationFrame extends javax.swing.JFrame {
             analyzeCodeBtn.setBackground(Color.red);
             analyzeCodeBtn.setEnabled(true);
         }
+    }
+
+    public static int getLineNumberForTag(String tag) {
+        try (BufferedReader reader = new BufferedReader(new FileReader(xmlFile))) {
+            String line;
+            int lineNumber = 0;
+
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+
+                // Si la línea contiene la etiqueta, devuelve el número de línea
+                if (line.contains(tag)) {
+                    return lineNumber;
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+
+        return -1; // Si no se encuentra la etiqueta, devuelve -1
     }
 
     /**
@@ -381,7 +409,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JButton analyzeCodeBtn;
-    private javax.swing.JButton jButton2;
+    private javax.swing.JButton findXML;
     private javax.swing.JLabel jLabel1;
     private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel3;
@@ -737,7 +765,7 @@ public class ValidationFrame extends javax.swing.JFrame {
     }
 
     private void stepsValidation(org.w3c.dom.Element process) {
-        NodeList steps = process.getElementsByTagName("step");
+        NodeList steps = process.getElementsByTagName("Step");
         boolean hasIntermediateStep = false;
 
         if (steps.getLength() < 3) {
@@ -761,86 +789,135 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     private void validateNoXogWrites(org.w3c.dom.Element process) {
         NodeList soapInvokes = process.getElementsByTagName("soap:invoke");
-        
+
         for (int i = 0; i < soapInvokes.getLength(); i++) {
             org.w3c.dom.Element soapInvoke = (org.w3c.dom.Element) soapInvokes.item(i);
             String endpoint = soapInvoke.getAttribute("endpoint");
-            
-            if (endpoint!=null&&endpoint.contains("/niku/xog")) {
-                errors.append("- WARNING: Found a XOG write operation\n");
+
+            if (endpoint != null && endpoint.contains("/niku/xog")) {
+                int lineNumber = getLineNumberForTag(soapInvoke.getNodeName());
+                errors.append("- WARNING: Found a XOG write operation at line ").append(lineNumber).append("\n");
             }
         }
     }
 
-    private void loading() {
-        try {
-            progressBar.setValue(progressBar.getValue() + 5);
-            Thread.sleep(1000);
-        } catch (Exception e) {
+    private void validateResultSummary() {
+
+        if (errors.toString().equals("")) {
+            resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
+        } else if (errors.toString().equals("- WARNING: Found a XOG write operation")) {
+            resultSummary.setText("<html>The process code <b><span style='color: orange;'>may contain errors</span></b>.");
+        } else {
+            resultSummary.setText("<html>The process code is <b><span style='color: red;'>incorrect</span></b>.");
 
         }
+    }
+
+    private void incrementProgress() {
+        javax.swing.SwingUtilities.invokeLater(() -> progressBar.setValue(progressBar.getValue() + 9));
+    }
+
+    private void waitForOneSecond() {
+        try {
+            Thread.sleep(500);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void disableAll() {
+        prefix.setEnabled(false);
+        mandatoryYes.setEnabled(false);
+        mandatoryNo.setEnabled(false);
+        findXML.setEnabled(false);
+        analyzeCodeBtn.setEnabled(false);
+    }
+
+    private void enableAll() {
+        prefix.setEnabled(true);
+        mandatoryYes.setEnabled(true);
+        mandatoryNo.setEnabled(true);
+        findXML.setEnabled(true);
+        analyzeCodeBtn.setEnabled(true);
     }
 
     private String checks() {
         progressBar.setValue(0);
-        new Thread(() -> {
+        Thread validationThread = new Thread(() -> {
 
             try {
                 // OBTAINING THE PROCESS
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
+                waitForOneSecond();
+                incrementProgress();
 
                 // ERROR CHECKING
                 // 10-- validate steps
                 stepsValidation(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 1-- Mandatory check and prefix checks
                 validatePrefix(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 2-- Languages validation
                 validateDescriptionLanguages(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 3-- Mandatory check and department validation
                 validateMandatory(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 4-- Avoid missed steps
                 avoidMissedSteps(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 5-- Global Variables
                 validateGlobalVariable(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 6-- Validate process header
                 validateProcessHeader(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 7-- Validate comments
                 validateComments(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 8-- Validate vg_debug parameter
                 validateVgDebugParameter(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 9-- Validate direct URL's
                 containsDirectURL(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
 
                 // 11-- Validate no XOG writes
                 validateNoXogWrites(process);
-                loading();
+                waitForOneSecond();
+                incrementProgress();
+
+                validateResultSummary();
+                SwingUtilities.invokeLater(() -> validationResult.setText(errors.toString()));
             } catch (Exception e) {
+                e.printStackTrace();
+            } finally {
+                SwingUtilities.invokeLater(this::enableAll);
             }
-        }).start();
+        });
 
-        if (errors.toString().equals("")) {
-            resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
-        }
+        validationThread.start();
 
-        return (String) errors.toString();
+        return "Validations in progres...";
     }
 }
