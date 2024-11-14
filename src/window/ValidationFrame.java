@@ -809,7 +809,6 @@ public class ValidationFrame extends javax.swing.JFrame {
             resultSummary.setText("<html>The process code <b><span style='color: orange;'>may contain errors</span></b>.");
         } else {
             resultSummary.setText("<html>The process code is <b><span style='color: red;'>incorrect</span></b>.");
-
         }
     }
 
