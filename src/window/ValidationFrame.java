@@ -282,15 +282,19 @@ public class ValidationFrame extends javax.swing.JFrame {
         JFileChooser fc = new JFileChooser();
         fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
-        FileNameExtensionFilter filter = new FileNameExtensionFilter("Archivos de XML", "xml");
+        FileNameExtensionFilter filter = new FileNameExtensionFilter("XML files", "xml");
         fc.setFileFilter(filter);
 
         int res = fc.showOpenDialog(this);
         if (res != JFileChooser.CANCEL_OPTION) {
             File name = fc.getSelectedFile();
             if ((name == null) || name.getName().equals("")) {
-                JOptionPane.showMessageDialog(this, "Error al abrir el archivo");
+                JOptionPane.showMessageDialog(this, "Error opening the file");
             } else {
+                if (name.length() > 510241024) {
+                    JOptionPane.showMessageDialog(this, "The selected file exceeds the maximum size of 5 MB.");
+                    return;
+                }
                 route.setText(name.getAbsolutePath());
             }
         }
@@ -304,7 +308,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             doc = dBuilder.parse(xmlFile);
             doc.getDocumentElement().normalize();
         } catch (IOException | ParserConfigurationException | SAXException e) {
-            JOptionPane.showMessageDialog(null, "Ocurrió un error: " + e.getMessage());
+            JOptionPane.showMessageDialog(null, "An error ocurred: " + e.getMessage());
         }
         enableAnalyzeBtn();
     }//GEN-LAST:event_findXMLActionPerformed
@@ -369,7 +373,6 @@ public class ValidationFrame extends javax.swing.JFrame {
      * @param args the command line arguments
      */
     public static void main(String args[]) {
-
 
         /* Set the Nimbus look and feel */
         //<editor-fold defaultstate="collapsed" desc=" Look and feel setting code (optional) ">
@@ -783,7 +786,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    private void validateNoXogWrites(org.w3c.dom.Element process) {
+    private void validateXogWrites(org.w3c.dom.Element process) {
         NodeList soapInvokes = process.getElementsByTagName("soap:invoke");
 
         for (int i = 0; i < soapInvokes.getLength(); i++) {
@@ -791,19 +794,19 @@ public class ValidationFrame extends javax.swing.JFrame {
             String endpoint = soapInvoke.getAttribute("endpoint");
 
             if (endpoint != null && endpoint.contains("/niku/xog")) {
-                List lineNumbers = getLineNumberForTag("<" + soapInvoke.getNodeName() + ">");
+                List lineNumbers = getLineNumberForTag("<" + soapInvoke.getNodeName());
                 errors.append("- WARNING: Found a XOG write operation at line ").append(lineNumbers.get(i)).append("\n");
             }
         }
     }
 
-    private void validateNoUpdates(org.w3c.dom.Element process) {
+    private void validateSQLOperations(org.w3c.dom.Element process) {
         NodeList sqlUpdates = process.getElementsByTagName("sql:update");
 
         for (int i = 0; i < sqlUpdates.getLength(); i++) {
             org.w3c.dom.Element sqlUpdate = (org.w3c.dom.Element) sqlUpdates.item(i);
-            List lineNumbers = getLineNumberForTag("<" + sqlUpdate.getNodeName() + ">");
-            errors.append("- WARNING: Found an update operation at line ").append(lineNumbers.get(i)).append("\n");
+            List lineNumbers = getLineNumberForTag("<" + sqlUpdate.getNodeName());
+            errors.append("- WARNING: Found a SQL operation at line ").append(lineNumbers.get(i)).append("\n");
         }
     }
 
@@ -811,7 +814,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         if (errors.toString().equals("")) {
             resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
-        } else if (errors.toString().equals("- WARNING: Found a XOG write operation")) {
+        } else if (errors.toString().contains("- WARNING: Found a XOG write operation") || errors.toString().contains("- WARNING: Found a SQL operation")) {
             resultSummary.setText("<html>The process code <b><span style='color: orange;'>may contain errors</span></b>.");
         } else {
             resultSummary.setText("<html>The process code is <b><span style='color: red;'>incorrect</span></b>.");
@@ -908,12 +911,12 @@ public class ValidationFrame extends javax.swing.JFrame {
                 incrementProgress();
 
                 // 11-- Validate no XOG writes
-                validateNoXogWrites(process);
+                validateXogWrites(process);
                 waitForOneSecond();
                 incrementProgress();
 
-                // 12-- Validate no SQL updates operations (INSERT, UPDATE, DELETE)
-                validateNoUpdates(process);
+                // 12-- Validate SQL operations (INSERT, UPDATE, DELETE)
+                validateSQLOperations(process);
                 waitForOneSecond();
                 incrementProgress();
 
@@ -928,6 +931,6 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         validationThread.start();
 
-        return "Validations in progress...";
+        return "Validation in progress...";
     }
 }
