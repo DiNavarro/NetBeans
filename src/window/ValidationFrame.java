@@ -278,6 +278,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     private static File xmlFile;
 
+    // Opens a file chooser to select an XML file and loads its content
     private void findXMLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_findXMLActionPerformed
         JFileChooser fc = new JFileChooser();
         fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
@@ -291,7 +292,8 @@ public class ValidationFrame extends javax.swing.JFrame {
             if ((name == null) || name.getName().equals("")) {
                 JOptionPane.showMessageDialog(this, "Error opening the file");
             } else {
-                if (name.length() > 510241024) {
+                // Ensure file size is below the 5 MB limit
+                if (name.length() > 5 * 1024 * 1024) {
                     JOptionPane.showMessageDialog(this, "The selected file exceeds the maximum size of 5 MB.");
                     return;
                 }
@@ -313,6 +315,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         enableAnalyzeBtn();
     }//GEN-LAST:event_findXMLActionPerformed
 
+    // Sets a default text when the 'prefix' field loses focus if it's empty
     private void prefixFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_prefixFocusLost
         if (prefix.getText().equals("")) {
             prefix.setText("Example: c_");
@@ -320,6 +323,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }//GEN-LAST:event_prefixFocusLost
 
+    // Clears the default text in the 'prefix' field when it gains focus
     private void prefixFocusGained(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_prefixFocusGained
         if (prefix.getText().equals("Example: c_")) {
             prefix.setText("");
@@ -328,9 +332,9 @@ public class ValidationFrame extends javax.swing.JFrame {
     }//GEN-LAST:event_prefixFocusGained
 
     private void mandatoryYesActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_mandatoryYesActionPerformed
-        // TODO add your handling code here:
     }//GEN-LAST:event_mandatoryYesActionPerformed
 
+    // Validates the code and disables all interactive components
     private void analyzeCodeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_analyzeCodeBtnActionPerformed
 
         validationResult.setText(checks());
@@ -338,6 +342,8 @@ public class ValidationFrame extends javax.swing.JFrame {
         disableAll();
 
     }//GEN-LAST:event_analyzeCodeBtnActionPerformed
+    
+    // Enables or disables the 'Analyze' button based on whether the XML file is loaded
     public void enableAnalyzeBtn() {
         if (route.getText().trim().equals("Load XML file (max. 5 MB)...")) {
             analyzeCodeBtn.setBackground(new Color(153, 153, 153));
@@ -347,7 +353,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             analyzeCodeBtn.setEnabled(true);
         }
     }
-
+    // Returns a list of line numbers where the specified XML tag is found
     public static List<Integer> getLineNumberForTag(String tag) {
         List<Integer> lineNumbers = new ArrayList<>();
 
@@ -431,6 +437,8 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     public static StringBuilder errors = new StringBuilder();
 
+    
+    // Enum representing the different types of nodes in the XML document
     public enum NodeType {
         PROCESS("Process"),
         STEP("Step"),
@@ -447,6 +455,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
+    // Validates that there is exactly one "Process" element in the XML document
     private org.w3c.dom.Element validateSingleProcess() {
         NodeList processes = doc.getElementsByTagName("Process");
         if (processes.getLength() != 1) {
@@ -458,6 +467,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     }
 
+    // Validates that process and its steps/actions use the specified prefix
     private void validatePrefix(org.w3c.dom.Element process) {
         if (!prefix.getText().trim().equals("Example: c_")) {
             NodeList steps = process.getElementsByTagName("Step");
@@ -490,7 +500,8 @@ public class ValidationFrame extends javax.swing.JFrame {
             JOptionPane.showMessageDialog(null, "Please insert a prefix");
         }
     }
-
+    
+    // Validates that the process has descriptions in all required languages
     private void validateDescriptionLanguages(org.w3c.dom.Element process) {
         String[] languages = {"ca", "cs", "da", "de", "en", "es", "fi", "fr", "hu", "it", "ja", "ko", "nl", "no",
             "pl", "pt", "ru", "sv", "tr", "zh", "zh_TW"};
@@ -511,13 +522,13 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // JAVI
+    // Check if the answer to the mandatory question is affirmative 
     private void validateMandatory(org.w3c.dom.Element process) {
         if (mandatory.isSelected(mandatoryYes.getModel())) {
             validateProcessDepartment(process);
         }
     }
-
+    // Validates that the process has a properly formatted department name in its "nls" elements
     private void validateProcessDepartment(org.w3c.dom.Element process) {
         NodeList nlsList = process.getChildNodes();
         boolean hasDepartment = true;
@@ -537,7 +548,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    //JAVI
+    // Ensures that each step has both a previous and next step, if applicable
     private void avoidMissedSteps(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
         for (int i = 0; i < steps.getLength(); i++) {
@@ -557,6 +568,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
+    // Validates that the process's variables match the global variables file
     private void validateGlobalVariables(org.w3c.dom.Element process) {
         String variablesPath = "src/document/globalVariables.xml";
 
@@ -610,7 +622,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    //JAVI
+    // Validates the process header and checks for the "Finish" step and its header content
     private void validateProcessHeader(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
         boolean finishStepFound = false;
@@ -642,6 +654,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
+    // Checks if the "gel:script" tag has the correct namespace attributes
     private boolean checkHeader(org.w3c.dom.Element gelScript) {
         return "http://schemas.xmlsoap.org/soap/envelope/".equals(gelScript.getAttribute("xmlns:SOAP-ENV"))
                 && "jelly:com.niku.bpm.gel.BPMTagLibrary".equals(gelScript.getAttribute("xmlns:bpm"))
@@ -663,7 +676,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 && "http://www.w3.org/1999/XSL/Transform".equals(gelScript.getAttribute("xmlns:xsl"));
     }
 
-    //JAVI
+    // Validates that there are comments at least every 100 lines.
     private void validateComments(org.w3c.dom.Element process) {
         NodeList scripts = process.getElementsByTagName("customScript");
         boolean foundComment = false;
@@ -706,7 +719,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    //JAVI
+    // Checks if the "vg_debug" parameter is present and correctly set
     private void validateVgDebugParameter(org.w3c.dom.Element process) {
         NodeList gelScripts = process.getElementsByTagName("gel:script");
 
@@ -737,7 +750,8 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
         }
     }
-
+    
+    // Checks if the process contains any direct URL
     private void containsDirectURL(org.w3c.dom.Element process) {
         String[] urlPatterns = {"http://", "https://"};
         if (checkForURL(process, urlPatterns)) {
@@ -745,6 +759,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
+    // Recursively checks for the presence of URL patterns in text or attribute nodes
     private boolean checkForURL(Node node, String[] urlPatterns) {
         if (node.getNodeType() == Node.TEXT_NODE || node.getNodeType() == Node.ATTRIBUTE_NODE) {
             String textContent = node.getTextContent();
@@ -762,7 +777,8 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
         return false;
     }
-
+    
+    // Validates that the process contains at least one intermediate step
     private void stepsValidation(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
         boolean hasIntermediateStep = false;
@@ -786,6 +802,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
+    // Validates that no XOG write operations are found in the process
     private void validateXogWrites(org.w3c.dom.Element process) {
         NodeList soapInvokes = process.getElementsByTagName("soap:invoke");
 
@@ -799,7 +816,8 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
         }
     }
-
+    
+    // Validates that no SQL update operations are found in the process
     private void validateSQLOperations(org.w3c.dom.Element process) {
         NodeList sqlUpdates = process.getElementsByTagName("sql:update");
 
@@ -810,6 +828,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
+    // Updates the result summary
     private void validateResultSummary() {
 
         if (errors.toString().equals("")) {
@@ -820,11 +839,13 @@ public class ValidationFrame extends javax.swing.JFrame {
             resultSummary.setText("<html>The process code is <b><span style='color: red;'>incorrect</span></b>.");
         }
     }
-
+    
+    // Increments the progress bar
     private void incrementProgress() {
         javax.swing.SwingUtilities.invokeLater(() -> progressBar.setValue(progressBar.getValue() + 9));
     }
-
+    
+    // Pauses the execution for 500 milliseconds
     private void waitForOneSecond() {
         try {
             Thread.sleep(500);
@@ -833,6 +854,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
+    // Disables all user interface elements
     private void disableAll() {
         prefix.setEnabled(false);
         mandatoryYes.setEnabled(false);
@@ -840,7 +862,8 @@ public class ValidationFrame extends javax.swing.JFrame {
         findXML.setEnabled(false);
         analyzeCodeBtn.setEnabled(false);
     }
-
+    
+    // Enables all user interface elements
     private void enableAll() {
         prefix.setEnabled(true);
         mandatoryYes.setEnabled(true);
@@ -849,6 +872,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         analyzeCodeBtn.setEnabled(true);
     }
 
+    // Method that runs the validation checks 
     private String checks() {
         progressBar.setValue(0);
         Thread validationThread = new Thread(() -> {
@@ -928,7 +952,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 SwingUtilities.invokeLater(this::enableAll);
             }
         });
-
+         // Iniciar el hilo de validación
         validationThread.start();
 
         return "Validation in progress...";
