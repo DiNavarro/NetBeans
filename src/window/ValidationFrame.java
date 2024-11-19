@@ -68,7 +68,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         resultSummary = new javax.swing.JLabel("<html>The process code is <span style='color: green;'>correct</span>. | The process code is <span style='color: red;'>incorrect</span>. | The process code <span style='color: orange;'>may contain errors</span>.</html>")
         ;
         jScrollPane1 = new javax.swing.JScrollPane();
-        validationResult = new javax.swing.JTextArea();
+        validationResult = new javax.swing.JTextPane();
         progressBar = new javax.swing.JProgressBar();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
@@ -154,6 +154,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         route.setFont(new java.awt.Font("Segoe UI", 2, 12)); // NOI18N
         route.setForeground(new java.awt.Color(153, 153, 153));
         route.setText("Load XML file (max. 5 MB)...");
+        route.setFocusable(false);
         route.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 routeActionPerformed(evt);
@@ -172,8 +173,8 @@ public class ValidationFrame extends javax.swing.JFrame {
         resultSummary.setOpaque(true);
 
         validationResult.setEditable(false);
-        validationResult.setColumns(20);
-        validationResult.setRows(3);
+        validationResult.setContentType("text/html"); // NOI18N
+        validationResult.setFocusable(false);
         jScrollPane1.setViewportView(validationResult);
 
         progressBar.setForeground(new java.awt.Color(51, 204, 0));
@@ -183,34 +184,30 @@ public class ValidationFrame extends javax.swing.JFrame {
         jPanel2Layout.setHorizontalGroup(
             jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(jPanel2Layout.createSequentialGroup()
-                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING)
-                    .addGroup(jPanel2Layout.createSequentialGroup()
-                        .addContainerGap()
-                        .addComponent(progressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 623, javax.swing.GroupLayout.PREFERRED_SIZE))
+                .addGap(37, 37, 37)
+                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
                     .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                        .addGap(37, 37, 37)
-                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.TRAILING, false)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                                .addComponent(jLabel2)
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(prefix, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                                .addComponent(jLabel3)
-                                .addGap(18, 18, 18)
-                                .addComponent(mandatoryYes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
-                                .addGap(18, 18, 18)
-                                .addComponent(mandatoryNo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING)
-                            .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
-                                .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                                    .addComponent(jLabel4)
-                                    .addComponent(route, javax.swing.GroupLayout.PREFERRED_SIZE, 589, javax.swing.GroupLayout.PREFERRED_SIZE))
-                                .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
-                                .addComponent(findXML, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
-                            .addComponent(analyzeCodeBtn, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(resultSummary, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                            .addComponent(jScrollPane1)
-                            .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING))))
+                        .addComponent(jLabel2)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(prefix, javax.swing.GroupLayout.PREFERRED_SIZE, 111, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                        .addComponent(jLabel3)
+                        .addGap(18, 18, 18)
+                        .addComponent(mandatoryYes, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addGap(18, 18, 18)
+                        .addComponent(mandatoryNo, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(jLabel6, javax.swing.GroupLayout.Alignment.LEADING)
+                    .addGroup(javax.swing.GroupLayout.Alignment.LEADING, jPanel2Layout.createSequentialGroup()
+                        .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
+                            .addComponent(jLabel4)
+                            .addComponent(route, javax.swing.GroupLayout.PREFERRED_SIZE, 589, javax.swing.GroupLayout.PREFERRED_SIZE))
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(findXML, javax.swing.GroupLayout.PREFERRED_SIZE, 28, javax.swing.GroupLayout.PREFERRED_SIZE))
+                    .addComponent(analyzeCodeBtn, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 623, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(resultSummary, javax.swing.GroupLayout.Alignment.LEADING, javax.swing.GroupLayout.PREFERRED_SIZE, 623, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.PREFERRED_SIZE, 623, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(jLabel5, javax.swing.GroupLayout.Alignment.LEADING)
+                    .addComponent(progressBar, javax.swing.GroupLayout.PREFERRED_SIZE, 623, javax.swing.GroupLayout.PREFERRED_SIZE))
                 .addGap(37, 37, 37))
             .addGroup(jPanel2Layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
                 .addComponent(jLabel1, javax.swing.GroupLayout.DEFAULT_SIZE, 697, Short.MAX_VALUE))
@@ -342,7 +339,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         disableAll();
 
     }//GEN-LAST:event_analyzeCodeBtnActionPerformed
-    
+
     // Enables or disables the 'Analyze' button based on whether the XML file is loaded
     public void enableAnalyzeBtn() {
         if (route.getText().trim().equals("Load XML file (max. 5 MB)...")) {
@@ -353,6 +350,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             analyzeCodeBtn.setEnabled(true);
         }
     }
+
     // Returns a list of line numbers where the specified XML tag is found
     public static List<Integer> getLineNumberForTag(String tag) {
         List<Integer> lineNumbers = new ArrayList<>();
@@ -430,36 +428,19 @@ public class ValidationFrame extends javax.swing.JFrame {
     private javax.swing.JProgressBar progressBar;
     private javax.swing.JLabel resultSummary;
     private javax.swing.JTextField route;
-    private javax.swing.JTextArea validationResult;
+    private javax.swing.JTextPane validationResult;
     // End of variables declaration//GEN-END:variables
 
     public static Document doc;
 
     public static StringBuilder errors = new StringBuilder();
 
-    
-    // Enum representing the different types of nodes in the XML document
-    public enum NodeType {
-        PROCESS("Process"),
-        STEP("Step"),
-        ACTION("Action");
-
-        private final String nodeName;
-
-        NodeType(String nodeName) {
-            this.nodeName = nodeName;
-        }
-
-        public String getNodeName() {
-            return nodeName;
-        }
-    }
-
     // Validates that there is exactly one "Process" element in the XML document
     private org.w3c.dom.Element validateSingleProcess() {
         NodeList processes = doc.getElementsByTagName("Process");
         if (processes.getLength() != 1) {
-            errors.append("- ERROR: There is more than one process in the script");
+            errors.append("<font color='red'>- ERROR</font>");
+            errors.append(": There is more than one process in the script<br>");
             return null;
         } else {
             return (org.w3c.dom.Element) processes.item(0);
@@ -475,7 +456,8 @@ public class ValidationFrame extends javax.swing.JFrame {
             String prefixUser = prefix.getText();
 
             if (!process.getAttribute("code").startsWith(prefixUser)) {
-                errors.append("- ERROR: The process \"").append(process.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                errors.append(": The process \"").append(process.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"<br>");
             }
 
             for (int i = 0; i < steps.getLength(); i++) {
@@ -484,7 +466,8 @@ public class ValidationFrame extends javax.swing.JFrame {
 
                 if (!stepId.equals("Start") && !stepId.equals("Finish")) {
                     if (!stepId.startsWith(prefixUser)) {
-                        errors.append("- ERROR: The step \"").append(step.getAttribute("id")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                        errors.append(": The step \"").append(step.getAttribute("id")).append("\" does not have the prefix \"").append(prefixUser).append("\"<br>");
                     }
                 }
             }
@@ -493,14 +476,15 @@ public class ValidationFrame extends javax.swing.JFrame {
                 org.w3c.dom.Element action = (org.w3c.dom.Element) actions.item(i);
 
                 if (!action.getAttribute("code").startsWith(prefixUser)) {
-                    errors.append("- ERROR: The action \"").append(action.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"\n");
+                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                    errors.append(": The action \"").append(action.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"<br>");
                 }
             }
         } else {
             JOptionPane.showMessageDialog(null, "Please insert a prefix");
         }
     }
-    
+
     // Validates that the process has descriptions in all required languages
     private void validateDescriptionLanguages(org.w3c.dom.Element process) {
         String[] languages = {"ca", "cs", "da", "de", "en", "es", "fi", "fr", "hu", "it", "ja", "ko", "nl", "no",
@@ -518,7 +502,8 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
         }
         if (!foundLanguagesSet.containsAll(languagesSet)) {
-            errors.append("- ERROR: The type" + " \"" + "identifier" + "\" does not have a description in all languages");
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+            errors.append(": The type" + " \"" + "identifier" + "\" does not have a description in all languages<br>");
         }
     }
 
@@ -528,6 +513,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             validateProcessDepartment(process);
         }
     }
+
     // Validates that the process has a properly formatted department name in its "nls" elements
     private void validateProcessDepartment(org.w3c.dom.Element process) {
         NodeList nlsList = process.getChildNodes();
@@ -544,7 +530,8 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
 
         if (!hasDepartment) {
-            errors.append("- ERROR: The attribute \"name\" of process \"").append(process.getAttribute("code")).append("\" does not indicate the department concerned\n");
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+            errors.append(": The attribute \"name\" of process \"").append(process.getAttribute("code")).append("\" does not indicate the department concerned<br>");
         }
     }
 
@@ -560,10 +547,12 @@ public class ValidationFrame extends javax.swing.JFrame {
             boolean hasNext = (i < steps.getLength() - 1 && Integer.parseInt(((org.w3c.dom.Element) steps.item(i + 1)).getAttribute("sequenceNo")) == currentSeqNo + 1);
 
             if (!hasPrevious && i != 0) {
-                errors.append("- ERROR: Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a previous step\n");
+                errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                errors.append(": Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a previous step<br>");
             }
             if (!hasNext && i != steps.getLength() - 1) {
-                errors.append("- ERROR: Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a next step\n");
+                errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                errors.append(": Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a next step<br>");
             }
         }
     }
@@ -602,7 +591,8 @@ public class ValidationFrame extends javax.swing.JFrame {
 
                     if (nameVar1.equals(nameVar2)) {
                         if (!valueVar1.equals(valueVar2)) {
-                            errors.append("- ERROR: Value in " + nameVar2 + " is not equal to " + valueVar1 + "\n");
+                            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                            errors.append(": Value in " + nameVar2 + " is not equal to " + valueVar1 + "<br>");
                             matches = false;
                         }
                         found = true;
@@ -610,12 +600,14 @@ public class ValidationFrame extends javax.swing.JFrame {
                     }
                 }
                 if (!found) {
-                    errors.append("- ERROR: Variable not found: " + nameVar1 + "\n");
+                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                    errors.append(": Variable not found: " + nameVar1 + "<br>");
                     matches = false;
                 }
             }
             if (matches) {
-                errors.append("- ERROR: Global variables do not match.\n");
+                errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                errors.append(": Global variables do not match<br>");
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -648,9 +640,11 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
 
         if (!finishStepFound) {
-            errors.append("- ERROR: Could not validate process header, \"Finish\" step not found\n");
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+            errors.append(": Could not validate process header, \"Finish\" step not found<br>");
         } else if (!gelScriptValid) {
-            errors.append("- ERROR: The process does not contain an appropriate header\n");
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+            errors.append("- ERROR: The process does not contain an appropriate header<br>");
         }
     }
 
@@ -699,7 +693,8 @@ public class ValidationFrame extends javax.swing.JFrame {
                 if (lineCounter >= 100) {
                     if (!foundComment) {
                         moreThan100 = true;
-                        errors.append("- ERROR: There are fewer than 100 comments in one of the scripts\n");
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                        errors.append(": There are fewer than 100 comments in one of the scripts<br>");
                         break;
                     }
 
@@ -715,7 +710,8 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
 
         if (moreThan100) {
-            errors.append("- ERROR: There are few comments in one of the scripts\n");
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+            errors.append(": There are few comments in one of the scripts<br>");
         }
     }
 
@@ -746,11 +742,12 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
 
             if (!hasVgDebugParameter) {
-                errors.append("- ERROR: Process script " + (i + 1) + " is missing the vg_debug parameter or has an incorrect one\n");
+                errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                errors.append(": Process script " + (i + 1) + " is missing the vg_debug parameter or has an incorrect one<br>");
             }
         }
     }
-    
+
     // Checks if the process contains any direct URL
     private void containsDirectURL(org.w3c.dom.Element process) {
         String[] urlPatterns = {"http://", "https://"};
@@ -777,14 +774,15 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
         return false;
     }
-    
+
     // Validates that the process contains at least one intermediate step
     private void stepsValidation(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
         boolean hasIntermediateStep = false;
 
         if (steps.getLength() < 3) {
-            errors.append("- ERROR: We need at least one intermediate step.\n");
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+            errors.append(": We need at least one intermediate step.<br>");
             return;
         }
 
@@ -798,7 +796,8 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
 
         if (!hasIntermediateStep) {
-            errors.append("- ERROR: We need at least one intermediate step.\n");
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+            errors.append("- ERROR: We need at least one intermediate step.<br>");
         }
     }
 
@@ -812,11 +811,12 @@ public class ValidationFrame extends javax.swing.JFrame {
 
             if (endpoint != null && endpoint.contains("/niku/xog")) {
                 List lineNumbers = getLineNumberForTag("<" + soapInvoke.getNodeName());
-                errors.append("- WARNING: Found a XOG write operation at line ").append(lineNumbers.get(i)).append("\n");
+                errors.append("- <strong><font color='orange'>WARNING</font></strong>");
+                errors.append(": Found a XOG write operation at line ").append(lineNumbers.get(i)).append("<br>");
             }
         }
     }
-    
+
     // Validates that no SQL update operations are found in the process
     private void validateSQLOperations(org.w3c.dom.Element process) {
         NodeList sqlUpdates = process.getElementsByTagName("sql:update");
@@ -824,27 +824,28 @@ public class ValidationFrame extends javax.swing.JFrame {
         for (int i = 0; i < sqlUpdates.getLength(); i++) {
             org.w3c.dom.Element sqlUpdate = (org.w3c.dom.Element) sqlUpdates.item(i);
             List lineNumbers = getLineNumberForTag("<" + sqlUpdate.getNodeName());
-            errors.append("- WARNING: Found a SQL operation at line ").append(lineNumbers.get(i)).append("\n");
+            errors.append("- <strong><font color='orange'>WARNING</font></strong>");
+            errors.append(": Found a SQL operation at line ").append(lineNumbers.get(i)).append("<br>");
         }
     }
 
     // Updates the result summary
     private void validateResultSummary() {
 
-        if (errors.toString().equals("")) {
+        if (!errors.toString().contains("ERROR") || !errors.toString().contains("WARNING")) {
             resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
-        } else if (errors.toString().contains("- WARNING: Found a XOG write operation") || errors.toString().contains("- WARNING: Found a SQL operation")) {
-            resultSummary.setText("<html>The process code <b><span style='color: orange;'>may contain errors</span></b>.");
-        } else {
+        } else if (errors.toString().contains("ERROR")) {
             resultSummary.setText("<html>The process code is <b><span style='color: red;'>incorrect</span></b>.");
+        } else {
+            resultSummary.setText("<html>The process code <b><span style='color: orange;'>may contain errors</span></b>.");
         }
     }
-    
+
     // Increments the progress bar
     private void incrementProgress() {
-        javax.swing.SwingUtilities.invokeLater(() -> progressBar.setValue(progressBar.getValue() + 9));
+        javax.swing.SwingUtilities.invokeLater(() -> progressBar.setValue(progressBar.getValue() + 10));
     }
-    
+
     // Pauses the execution for 500 milliseconds
     private void waitForOneSecond() {
         try {
@@ -862,7 +863,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         findXML.setEnabled(false);
         analyzeCodeBtn.setEnabled(false);
     }
-    
+
     // Enables all user interface elements
     private void enableAll() {
         prefix.setEnabled(true);
@@ -874,25 +875,20 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Method that runs the validation checks 
     private String checks() {
+        errors.append("<html><body>");
         progressBar.setValue(0);
         Thread validationThread = new Thread(() -> {
 
             try {
                 // OBTAINING THE PROCESS
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
-                waitForOneSecond();
-                incrementProgress();
 
                 // ERROR CHECKING
                 // 10-- validate steps
                 stepsValidation(process);
-                waitForOneSecond();
-                incrementProgress();
 
                 // 1-- Mandatory check and prefix checks
                 validatePrefix(process);
-                waitForOneSecond();
-                incrementProgress();
 
                 // 2-- Languages validation
                 validateDescriptionLanguages(process);
@@ -945,6 +941,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 incrementProgress();
 
                 validateResultSummary();
+                errors.append("</body></html>");
                 SwingUtilities.invokeLater(() -> validationResult.setText(errors.toString()));
             } catch (Exception e) {
                 e.printStackTrace();
@@ -952,7 +949,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 SwingUtilities.invokeLater(this::enableAll);
             }
         });
-         // Iniciar el hilo de validación
+        // Iniciar el hilo de validación
         validationThread.start();
 
         return "Validation in progress...";
