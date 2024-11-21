@@ -15,6 +15,7 @@ import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
 import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
+import javax.swing.UIManager;
 import javax.swing.filechooser.FileNameExtensionFilter;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -267,6 +268,12 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Opens a file chooser to select an XML file and loads its content
     private void findXMLActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_findXMLActionPerformed
+        try {
+            UIManager.setLookAndFeel(UIManager.getSystemLookAndFeelClassName());
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
         JFileChooser fc = new JFileChooser();
         fc.setFileSelectionMode(JFileChooser.FILES_ONLY);
 
@@ -323,6 +330,9 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Validates the code and disables all interactive components
     private void analyzeCodeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_analyzeCodeBtnActionPerformed
+        errors.delete(0, errors.length());
+
+        resultSummary.setText("<html>The process code is <span style='color: green;'>correct</span>. | The process code is <span style='color: red;'>incorrect</span>. | The process code <span style='color: orange;'>may contain errors</span>.</html>");
 
         validationResult.setText(checks());
 
@@ -447,7 +457,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
             if (!process.getAttribute("code").startsWith(prefixUser)) {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": The process \"").append(process.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"<br>");
+                errors.append(": The process '").append(process.getAttribute("code")).append("' does not have the prefix '").append(prefixUser).append("'<br>");
             }
 
             for (int i = 0; i < steps.getLength(); i++) {
@@ -457,7 +467,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 if (!stepId.equals("Start") && !stepId.equals("Finish")) {
                     if (!stepId.startsWith(prefixUser)) {
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                        errors.append(": The step \"").append(step.getAttribute("id")).append("\" does not have the prefix \"").append(prefixUser).append("\"<br>");
+                        errors.append(": Step '").append(step.getAttribute("id")).append("' does not have the prefix '").append(prefixUser).append("'<br>");
                     }
                 }
             }
@@ -467,7 +477,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
                 if (!action.getAttribute("code").startsWith(prefixUser)) {
                     errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": The action \"").append(action.getAttribute("code")).append("\" does not have the prefix \"").append(prefixUser).append("\"<br>");
+                    errors.append(": Action '").append(action.getAttribute("code")).append("' does not have the prefix '").append(prefixUser).append("'<br>");
                 }
             }
         } else {
@@ -475,13 +485,41 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Validates that the process has descriptions in all required languages
+    // Validates that the process, steps and actions has descriptions in all required languages
     private void validateDescriptionLanguages(org.w3c.dom.Element process) {
+        if (!compareLanguages(process)) {
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+            errors.append(": The process does not have a description in all languages<br>");
+        }
+
+        NodeList steps = process.getElementsByTagName("Step");
+
+        for (int i = 0; i < steps.getLength(); i++) {
+            org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
+            if (!compareLanguages(step)) {
+                errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                errors.append(": Step '" + step.getAttribute("id") + "' does not have a description in all languages<br>");
+            }
+            
+            NodeList actions = step.getElementsByTagName("Action");
+
+            for (int j = 0; j < actions.getLength(); j++) {
+                org.w3c.dom.Element action = (org.w3c.dom.Element) actions.item(j);
+                if (!compareLanguages(action)) {
+                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                    errors.append(": Action '" + action.getAttribute("code") + "' in Step '" + step.getAttribute("id") + "' does not have a description in all languages<br>");
+                }
+            }
+        }
+    }
+
+    private boolean compareLanguages(org.w3c.dom.Element element) {
         String[] languages = {"ca", "cs", "da", "de", "en", "es", "fi", "fr", "hu", "it", "ja", "ko", "nl", "no",
             "pl", "pt", "ru", "sv", "tr", "zh", "zh_TW"};
         HashSet<String> languagesSet = new HashSet<>(Arrays.asList(languages));
-        NodeList childNodes = doc.getElementsByTagName("nls");
         HashSet<String> foundLanguagesSet = new HashSet<>();
+
+        NodeList childNodes = element.getChildNodes();
 
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node child = childNodes.item(i);
@@ -491,10 +529,8 @@ public class ValidationFrame extends javax.swing.JFrame {
                 foundLanguagesSet.add(languageCode);
             }
         }
-        if (!foundLanguagesSet.containsAll(languagesSet)) {
-            errors.append("- <strong><font color='red'>ERROR</font></strong>");
-            errors.append(": The type" + " \"" + "identifier" + "\" does not have a description in all languages<br>");
-        }
+
+        return foundLanguagesSet.containsAll(languagesSet);
     }
 
     // Check if the answer to the mandatory question is affirmative 
@@ -521,7 +557,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         if (!hasDepartment) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
-            errors.append(": The attribute \"name\" of process \"").append(process.getAttribute("code")).append("\" does not indicate the department concerned<br>");
+            errors.append(": The attribute 'name' of the process does not indicate the department concerned<br>");
         }
     }
 
@@ -538,11 +574,11 @@ public class ValidationFrame extends javax.swing.JFrame {
 
             if (!hasPrevious && i != 0) {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a previous step<br>");
+                errors.append(": Step number ").append(step.getAttribute("sequenceNo")).append(" with ID '").append(step.getAttribute("id")).append("' is missing a previous step<br>");
             }
             if (!hasNext && i != steps.getLength() - 1) {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": Step number ").append(step.getAttribute("sequenceNo")).append(" with ID \"").append(step.getAttribute("id")).append("\" is missing a next step<br>");
+                errors.append(": Step number ").append(step.getAttribute("sequenceNo")).append(" with ID '").append(step.getAttribute("id")).append("' is missing a next step<br>");
             }
         }
     }
@@ -582,7 +618,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                     if (nameVar1.equals(nameVar2)) {
                         if (!valueVar1.equals(valueVar2)) {
                             errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                            errors.append(": Value in " + nameVar2 + " is not equal to " + valueVar1 + "<br>");
+                            errors.append(": Value in '" + nameVar2 + "' is not equal to '" + valueVar1 + "'<br>");
                             matches = false;
                         }
                         found = true;
@@ -591,7 +627,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 }
                 if (!found) {
                     errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": Variable not found: " + nameVar1 + "<br>");
+                    errors.append(": Variable '" + nameVar1 + "' not found<br>");
                     matches = false;
                 }
             }
@@ -631,10 +667,10 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         if (!finishStepFound) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
-            errors.append(": Could not validate process header, \"Finish\" step not found<br>");
+            errors.append(": Could not validate process header, 'Finish' step not found<br>");
         } else if (!gelScriptValid) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
-            errors.append("- ERROR: The process does not contain an appropriate header<br>");
+            errors.append(": The process does not contain an appropriate header<br>");
         }
     }
 
@@ -707,33 +743,44 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Checks if the "vg_debug" parameter is present and correctly set
     private void validateVgDebugParameter(org.w3c.dom.Element process) {
-        NodeList gelScripts = process.getElementsByTagName("gel:script");
+        NodeList steps = process.getElementsByTagName("Step");
 
-        for (int i = 0; i < gelScripts.getLength(); i++) {
-            org.w3c.dom.Element gelScript = (org.w3c.dom.Element) gelScripts.item(i);
-            NodeList gelParameters = gelScript.getElementsByTagName("gel:parameter");
+        for (int i = 0; i < steps.getLength(); i++) {
+            org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
+            NodeList actions = step.getElementsByTagName("Action");
 
-            boolean hasVgDebugParameter = false;
+            for (int j = 0; j < actions.getLength(); j++) {
+                org.w3c.dom.Element action = (org.w3c.dom.Element) actions.item(j);
+                NodeList gelScripts = action.getElementsByTagName("gel:script");
 
-            for (int j = 0; j < gelParameters.getLength(); j++) {
-                Node parameter = gelParameters.item(j);
+                for (int k = 0; k < gelScripts.getLength(); k++) {
+                    org.w3c.dom.Element gelScript = (org.w3c.dom.Element) gelScripts.item(k);
+                    NodeList gelParameters = gelScript.getElementsByTagName("gel:parameter");
 
-                if (parameter.getNodeType() == Node.ELEMENT_NODE) {
-                    org.w3c.dom.Element elementNode = (org.w3c.dom.Element) parameter;
+                    boolean hasVgDebugParameter = false;
 
-                    String varAttribute = elementNode.getAttribute("var");
-                    String defaultAttribute = elementNode.getAttribute("default");
+                    for (int l = 0; l < gelParameters.getLength(); l++) {
+                        Node parameter = gelParameters.item(l);
 
-                    if ("vg_debug".equals(varAttribute) && "0".equals(defaultAttribute)) {
-                        hasVgDebugParameter = true;
-                        break;
+                        if (parameter.getNodeType() == Node.ELEMENT_NODE) {
+                            org.w3c.dom.Element elementNode = (org.w3c.dom.Element) parameter;
+
+                            String varAttribute = elementNode.getAttribute("var");
+                            String defaultAttribute = elementNode.getAttribute("default");
+
+                            if ("vg_debug".equals(varAttribute) && "0".equals(defaultAttribute)) {
+                                hasVgDebugParameter = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (!hasVgDebugParameter) {
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                        errors.append(": Process script at Action '" + action.getAttribute("code") + "' in Step '" + step.getAttribute("id") + "' is missing the 'vg_debug' parameter or has an incorrect one<br>");
+                        // añadir nombre del step y nombre acción
                     }
                 }
-            }
-
-            if (!hasVgDebugParameter) {
-                errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": Process script " + (i + 1) + " is missing the vg_debug parameter or has an incorrect one<br>");
             }
         }
     }
@@ -787,7 +834,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         if (!hasIntermediateStep) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
-            errors.append("- ERROR: We need at least one intermediate step.<br>");
+            errors.append(": We need at least one intermediate step.<br>");
         }
     }
 
@@ -815,19 +862,18 @@ public class ValidationFrame extends javax.swing.JFrame {
             org.w3c.dom.Element sqlUpdate = (org.w3c.dom.Element) sqlUpdates.item(i);
             List lineNumbers = getLineNumberForTag("<" + sqlUpdate.getNodeName());
             errors.append("- <strong><font color='orange'>WARNING</font></strong>");
-            errors.append(": Found a SQL operation at line ").append(lineNumbers.get(i)).append("<br>");
+            errors.append(": Found a SQL operation at line ").append(lineNumbers.get(i)).append(" (UPDATE / DELETE / INSERT)<br>");
         }
     }
 
     // Updates the result summary
     private void validateResultSummary() {
-
-        if (!errors.toString().contains("ERROR") || !errors.toString().contains("WARNING")) {
-            resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
-        } else if (errors.toString().contains("ERROR")) {
+        if (errors.toString().contains("ERROR")) {
             resultSummary.setText("<html>The process code is <b><span style='color: red;'>incorrect</span></b>.");
-        } else {
+        } else if (errors.toString().contains("WARNING")) {
             resultSummary.setText("<html>The process code <b><span style='color: orange;'>may contain errors</span></b>.");
+        } else {
+            resultSummary.setText("<html>The process code is <b><span style='color: green;'>correct</span></b>.");
         }
     }
 
