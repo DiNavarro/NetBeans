@@ -8,6 +8,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 
@@ -500,7 +501,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
                 errors.append(": Step '" + step.getAttribute("id") + "' does not have a description in all languages<br>");
             }
-            
+
             NodeList actions = step.getElementsByTagName("Action");
 
             for (int j = 0; j < actions.getLength(); j++) {
@@ -563,22 +564,52 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Ensures that each step has both a previous and next step, if applicable
     private void avoidMissedSteps(org.w3c.dom.Element process) {
+        HashSet<String> stepIds = new HashSet<>();
+        HashMap<String, String> transitionsMap = new HashMap<>();
+
         NodeList steps = process.getElementsByTagName("Step");
+
+        // Recolectar IDs de pasos y transiciones
         for (int i = 0; i < steps.getLength(); i++) {
-            Node node = steps.item(i);
-            org.w3c.dom.Element step = (org.w3c.dom.Element) node;
+            org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
+            String stepId = step.getAttribute("id");
+            stepIds.add(stepId);
 
-            int currentSeqNo = Integer.parseInt(step.getAttribute("sequenceNo"));
-            boolean hasPrevious = (i > 0 && Integer.parseInt(((org.w3c.dom.Element) steps.item(i - 1)).getAttribute("sequenceNo")) == currentSeqNo - 1);
-            boolean hasNext = (i < steps.getLength() - 1 && Integer.parseInt(((org.w3c.dom.Element) steps.item(i + 1)).getAttribute("sequenceNo")) == currentSeqNo + 1);
-
-            if (!hasPrevious && i != 0) {
-                errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": Step number ").append(step.getAttribute("sequenceNo")).append(" with ID '").append(step.getAttribute("id")).append("' is missing a previous step<br>");
+            NodeList transitions = step.getElementsByTagName("Transition");
+            for (int j = 0; j < transitions.getLength(); j++) {
+                org.w3c.dom.Element transition = (org.w3c.dom.Element) transitions.item(j);
+                String toStep = transition.getAttribute("to");
+                transitionsMap.put(stepId, toStep);
             }
-            if (!hasNext && i != steps.getLength() - 1) {
-                errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": Step number ").append(step.getAttribute("sequenceNo")).append(" with ID '").append(step.getAttribute("id")).append("' is missing a next step<br>");
+        }
+
+        // Validar pasos y conexiones
+        for (String stepId : stepIds) {
+            if (stepId.equals("Start")) {
+                // Validar que Start tenga al menos una transición saliente
+                if (!transitionsMap.containsKey("Start")) {
+                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                    errors.append(": Step 'Start' is missing a next step<br>");
+                }
+            } else if (stepId.equals("Finish")) {
+                // Validar que Finish no tenga transiciones salientes
+                if (transitionsMap.containsKey("Finish")) {
+                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                    errors.append(": Step 'Finish' should not have a next step<br>");
+                }
+            } else {
+                // Validar que el paso actual sea destino en alguna transición
+                boolean isTargetOfAnyTransition = transitionsMap.containsValue(stepId);
+                if (!isTargetOfAnyTransition) {
+                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                    errors.append(": Step '").append(stepId).append("' is missing a previous step<br>");
+                }
+
+                // Validar que el paso actual tenga al menos una transición saliente
+                if (!transitionsMap.containsKey(stepId)) {
+                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                    errors.append(": Step '").append(stepId).append("' is missing a next step<br>");
+                }
             }
         }
     }
