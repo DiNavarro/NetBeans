@@ -114,7 +114,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         });
 
         jLabel4.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
-        jLabel4.setText("Process file:");
+        jLabel4.setText("Process file (XML):");
 
         jLabel3.setFont(new java.awt.Font("Segoe UI", 1, 12)); // NOI18N
         jLabel3.setText("Mandatory name department identification?");
@@ -286,16 +286,22 @@ public class ValidationFrame extends javax.swing.JFrame {
             File name = fc.getSelectedFile();
             if ((name == null) || name.getName().equals("")) {
                 JOptionPane.showMessageDialog(this, "Error opening the file");
+                disableAnalyzeBtn();
             } else {
                 // Ensure file size is below the 5 MB limit
                 if (name.length() > 5 * 1024 * 1024) {
                     JOptionPane.showMessageDialog(this, "The selected file exceeds the maximum size of 5 MB.");
+                    disableAnalyzeBtn();
                     return;
                 }
                 route.setText(name.getAbsolutePath());
             }
         }
+        
+        loadXML();
+    }//GEN-LAST:event_findXMLActionPerformed
 
+    private void loadXML() {
         String fileRoute = route.getText();
         xmlFile = new File(fileRoute);
 
@@ -304,12 +310,13 @@ public class ValidationFrame extends javax.swing.JFrame {
             DocumentBuilder dBuilder = dbf.newDocumentBuilder();
             doc = dBuilder.parse(xmlFile);
             doc.getDocumentElement().normalize();
+            enableAnalyzeBtn();
         } catch (IOException | ParserConfigurationException | SAXException e) {
             JOptionPane.showMessageDialog(null, "An error ocurred: " + e.getMessage());
+            disableAnalyzeBtn();
         }
-        enableAnalyzeBtn();
-    }//GEN-LAST:event_findXMLActionPerformed
-
+    }
+    
     // Sets a default text when the 'prefix' field loses focus if it's empty
     private void prefixFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_prefixFocusLost
         if (prefix.getText().equals("")) {
@@ -331,14 +338,18 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Validates the code and disables all interactive components
     private void analyzeCodeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_analyzeCodeBtnActionPerformed
-        errors.delete(0, errors.length());
-
-        resultSummary.setText("<html>The process code is <span style='color: green;'>correct</span>. | The process code is <span style='color: red;'>incorrect</span>. | The process code <span style='color: orange;'>may contain errors</span>.</html>");
-
-        validationResult.setText(checks());
+        restart();
+        loadXML();
+        
+        validationResult.setText("<html><head><style>"
+                + "body {"
+                + "font-family: \"Segoe UI\", Arial, sans-serif;"
+                + "font-style: normal;"
+                + "font-weight: 400;"
+                + "}"
+                + "</style></head><body>" + checks() + "</body></html>");
 
         disableAll();
-
     }//GEN-LAST:event_analyzeCodeBtnActionPerformed
 
     // Enables or disables the 'Analyze' button based on whether the XML file is loaded
@@ -350,6 +361,20 @@ public class ValidationFrame extends javax.swing.JFrame {
             analyzeCodeBtn.setBackground(Color.red);
             analyzeCodeBtn.setEnabled(true);
         }
+    }
+
+    public void disableAnalyzeBtn() {
+        analyzeCodeBtn.setBackground(new Color(204, 204, 204));
+        analyzeCodeBtn.setForeground(new Color(255, 255, 255));
+        analyzeCodeBtn.setEnabled(false);
+        restart();
+    }
+
+    public void restart() {
+        errors.delete(0, errors.length());
+        validationResult.setText("");
+        progressBar.setValue(0);
+        resultSummary.setText("<html>The process code is <span style='color: green;'>correct</span>. | The process code is <span style='color: red;'>incorrect</span>. | The process code <span style='color: orange;'>may contain errors</span>.</html>");
     }
 
     // Returns a list of line numbers where the specified XML tag is found
@@ -618,6 +643,8 @@ public class ValidationFrame extends javax.swing.JFrame {
     private void validateGlobalVariables(org.w3c.dom.Element process) {
         String variablesPath = "src/document/globalVariables.xml";
 
+        StringBuilder missingVariables = new StringBuilder();
+
         try {
             File variablesFile = new File(variablesPath);
             DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
@@ -634,7 +661,6 @@ public class ValidationFrame extends javax.swing.JFrame {
             NodeList variablesOriginal = globalVariables.getElementsByTagName("core:set");
             NodeList variablesToCheck = process.getElementsByTagName("core:set");
 
-            boolean matches = true;
             for (int i = 0; i < variablesOriginal.getLength(); i++) {
                 org.w3c.dom.Element var1 = (org.w3c.dom.Element) variablesOriginal.item(i);
                 String nameVar1 = var1.getAttribute("var").trim();
@@ -650,21 +676,19 @@ public class ValidationFrame extends javax.swing.JFrame {
                         if (!valueVar1.equals(valueVar2)) {
                             errors.append("- <strong><font color='red'>ERROR</font></strong>");
                             errors.append(": Value in '" + nameVar2 + "' is not equal to '" + valueVar1 + "'<br>");
-                            matches = false;
                         }
                         found = true;
                         break;
                     }
                 }
                 if (!found) {
-                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": Variable '" + nameVar1 + "' not found<br>");
-                    matches = false;
+                    missingVariables.append("'").append(nameVar1).append("'").append(", ");
                 }
             }
-            if (!matches) {
+            if (missingVariables.length() > 0) {
+                missingVariables.setLength(missingVariables.length() - 2);
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": Global variables do not match<br>");
+                errors.append(": Variables not found: " + missingVariables.toString() + "<br>");
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -946,8 +970,13 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Method that runs the validation checks 
     private String checks() {
-        errors.append("<html><body>");
-        progressBar.setValue(0);
+        errors.append("<html><head><style>"
+                + "body {"
+                + "font-family: \"Segoe UI\", Arial, sans-serif;"
+                + "font-style: normal;"
+                + "font-weight: 400;"
+                + "}"
+                + "</style></head><body>");
         Thread validationThread = new Thread(() -> {
 
             try {
