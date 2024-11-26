@@ -662,7 +662,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                     matches = false;
                 }
             }
-            if (matches) {
+            if (!matches) {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
                 errors.append(": Global variables do not match<br>");
             }
@@ -787,6 +787,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                     NodeList gelParameters = gelScript.getElementsByTagName("gel:parameter");
 
                     boolean hasVgDebugParameter = false;
+                    boolean hasDefaultAttribute = false;
 
                     for (int l = 0; l < gelParameters.getLength(); l++) {
                         Node parameter = gelParameters.item(l);
@@ -797,8 +798,11 @@ public class ValidationFrame extends javax.swing.JFrame {
                             String varAttribute = elementNode.getAttribute("var");
                             String defaultAttribute = elementNode.getAttribute("default");
 
-                            if ("vg_debug".equals(varAttribute) && "0".equals(defaultAttribute)) {
+                            if ("vg_debug".equals(varAttribute)) {
                                 hasVgDebugParameter = true;
+                                if ("0".equals(defaultAttribute) || "1".equals(defaultAttribute)) {
+                                    hasDefaultAttribute = true;
+                                }
                                 break;
                             }
                         }
@@ -806,8 +810,10 @@ public class ValidationFrame extends javax.swing.JFrame {
 
                     if (!hasVgDebugParameter) {
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                        errors.append(": Process script at Action '" + action.getAttribute("code") + "' in Step '" + step.getAttribute("id") + "' is missing the 'vg_debug' parameter or has an incorrect one<br>");
-                        // añadir nombre del step y nombre acción
+                        errors.append(": Process script at Action '" + action.getAttribute("code") + "' in Step '" + step.getAttribute("id") + "' is missing the 'vg_debug' parameter<br>");
+                    } else if (hasVgDebugParameter && !hasDefaultAttribute) {
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                        errors.append(": Process script at Action '" + action.getAttribute("code") + "' in Step '" + step.getAttribute("id") + "' has an incorrect 'default' attribute in 'vg_debug' parameter<br>");
                     }
                 }
             }
