@@ -728,12 +728,12 @@ public class ValidationFrame extends javax.swing.JFrame {
     }
 
     // Validates that there are comments at least every 100 lines.
+    // Validates that there are at least one comment for every 100 lines of text in each custom script.
     private void validateComments(org.w3c.dom.Element process) {
-        NodeList scripts = process.getElementsByTagName("customScript");
+        NodeList scripts = process.getElementsByTagName("gel:script");
         boolean foundComment = false;
-        boolean moreThan100 = false;
         int lineCounter = 0;
-
+        boolean blockWithoutComment = false;
         for (int i = 0; i < scripts.getLength(); i++) {
             org.w3c.dom.Element script = (org.w3c.dom.Element) scripts.item(i);
             NodeList childNodes = script.getChildNodes();
@@ -744,31 +744,29 @@ public class ValidationFrame extends javax.swing.JFrame {
                 if (childNode.getNodeType() == Node.COMMENT_NODE) {
                     foundComment = true;
                 } else if (childNode.getNodeType() == Node.TEXT_NODE) {
-                    lineCounter++;
+                    String text = childNode.getTextContent().trim();
+                    lineCounter += text.split("\n").length; // Increment by number of lines in the text node.
                 }
 
+                // Check every block of 100 lines for comments
                 if (lineCounter >= 100) {
                     if (!foundComment) {
-                        moreThan100 = true;
+                        blockWithoutComment = true;
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                        errors.append(": There are fewer than 100 comments in one of the scripts<br>");
-                        break;
+                        errors.append(": There are 100 consecutive lines without a comment in &lt;gel:script&gt;.<br>");
                     }
-
                     // Reset counters for the next block of 100 lines
                     lineCounter = 0;
                     foundComment = false;
                 }
             }
 
-            if (moreThan100) {
-                break;
-            }
         }
+        // Check if the entire script has no comments
 
-        if (moreThan100) {
+        if (!foundComment && !blockWithoutComment) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
-            errors.append(": There are few comments in one of the scripts<br>");
+            errors.append(": No comments found in &lt;gel:script&gt;.<br>");
         }
     }
 
