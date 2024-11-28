@@ -297,7 +297,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 route.setText(name.getAbsolutePath());
             }
         }
-        
+
         loadXML();
     }//GEN-LAST:event_findXMLActionPerformed
 
@@ -316,7 +316,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             disableAnalyzeBtn();
         }
     }
-    
+
     // Sets a default text when the 'prefix' field loses focus if it's empty
     private void prefixFocusLost(java.awt.event.FocusEvent evt) {//GEN-FIRST:event_prefixFocusLost
         if (prefix.getText().equals("")) {
@@ -340,7 +340,7 @@ public class ValidationFrame extends javax.swing.JFrame {
     private void analyzeCodeBtnActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_analyzeCodeBtnActionPerformed
         restart();
         loadXML();
-        
+
         validationResult.setText("<html><head><style>"
                 + "body {"
                 + "font-family: \"Segoe UI\", Arial, sans-serif;"
@@ -465,7 +465,7 @@ public class ValidationFrame extends javax.swing.JFrame {
     private org.w3c.dom.Element validateSingleProcess() {
         NodeList processes = doc.getElementsByTagName("Process");
         if (processes.getLength() != 1) {
-            errors.append("<font color='red'>- ERROR</font>");
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
             errors.append(": There is more than one process in the script<br>");
             return null;
         } else {
@@ -751,46 +751,68 @@ public class ValidationFrame extends javax.swing.JFrame {
                 && "http://www.w3.org/1999/XSL/Transform".equals(gelScript.getAttribute("xmlns:xsl"));
     }
 
-    // Validates that there are comments at least every 100 lines.
     // Validates that there are at least one comment for every 100 lines of text in each custom script.
     private void validateComments(org.w3c.dom.Element process) {
         NodeList scripts = process.getElementsByTagName("gel:script");
-        boolean foundComment = false;
-        int lineCounter = 0;
-        boolean blockWithoutComment = false;
+        boolean hasAnyComment = false; // Indica si hay comentarios en todo el archivo
+        boolean blockWithoutComment = false; // Indica si hubo bloques sin comentarios
+        int globalLineCounter = 0; // Contador total de líneas
+        int blockLineCounter = 0; // Contador de líneas por bloque de 100
+        boolean currentBlockHasComment = false; // Indica si el bloque actual tiene comentarios
+
         for (int i = 0; i < scripts.getLength(); i++) {
             org.w3c.dom.Element script = (org.w3c.dom.Element) scripts.item(i);
             NodeList childNodes = script.getChildNodes();
+
+            List lineNumbers = getLineNumberForTag("<" + script.getNodeName());
+
+            System.out.println("Processing <gel:script> #" + (i + 1)); // Log para depuración
 
             for (int j = 0; j < childNodes.getLength(); j++) {
                 Node childNode = childNodes.item(j);
 
                 if (childNode.getNodeType() == Node.COMMENT_NODE) {
-                    foundComment = true;
+                    hasAnyComment = true;
+                    currentBlockHasComment = true;
+                    System.out.println("Found comment: " + childNode.getTextContent().trim());
                 } else if (childNode.getNodeType() == Node.TEXT_NODE) {
-                    String text = childNode.getTextContent().trim();
-                    lineCounter += text.split("\n").length; // Increment by number of lines in the text node.
+                    String text = childNode.getTextContent();
+                    String[] lines = text.split("\n");
+                    int lineCount = lines.length;
+                    globalLineCounter += lineCount;
+                    blockLineCounter += lineCount;
+
+                    System.out.println("Found text block with " + lineCount + " lines.");
                 }
 
-                // Check every block of 100 lines for comments
-                if (lineCounter >= 100) {
-                    if (!foundComment) {
+                // Verificar si el bloque actual supera las 100 líneas
+                if (blockLineCounter >= 100) {
+                    if (!currentBlockHasComment) {
                         blockWithoutComment = true;
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                        errors.append(": There are 100 consecutive lines without a comment in &lt;gel:script&gt;.<br>");
+                        errors.append(": There are 100 consecutive lines without a comment in &lt;gel:script&gt at line ").append(lineNumbers.get(i)).append("<br>");
+                        System.out.println("Error: Block of 100 lines without a comment.");
                     }
-                    // Reset counters for the next block of 100 lines
-                    lineCounter = 0;
-                    foundComment = false;
+                    // Reiniciar contadores de bloque
+                    blockLineCounter = 0;
+                    currentBlockHasComment = false;
                 }
             }
 
+            // Verificar si el último bloque tiene menos de 100 líneas y no tiene comentarios
+            if (blockLineCounter > 0 && !currentBlockHasComment) {
+                blockWithoutComment = true;
+                errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                errors.append(": There are 100 consecutive lines without a comment in &lt;gel:script&gt at line ").append(lineNumbers.get(i)).append("<br>");
+                System.out.println("Error: Last block of less than 100 lines without a comment.");
+            }
         }
-        // Check if the entire script has no comments
 
-        if (!foundComment && !blockWithoutComment) {
+        // Verificar si no hay ningún comentario en absoluto
+        if (!hasAnyComment && !blockWithoutComment) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
             errors.append(": No comments found in &lt;gel:script&gt;.<br>");
+            System.out.println("Error: No comments found in any <gel:script>.");
         }
     }
 
@@ -848,7 +870,8 @@ public class ValidationFrame extends javax.swing.JFrame {
     private void containsDirectURL(org.w3c.dom.Element process) {
         String[] urlPatterns = {"http://", "https://"};
         if (checkForURL(process, urlPatterns)) {
-            errors.append("- ERROR: There is a direct URL\n");
+            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+            errors.append(": There is a direct URL\n");
         }
     }
 
@@ -878,7 +901,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         if (steps.getLength() < 3) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
-            errors.append(": We need at least one intermediate step.<br>");
+            errors.append(": We need at least one intermediate step<br>");
             return;
         }
 
@@ -983,62 +1006,61 @@ public class ValidationFrame extends javax.swing.JFrame {
                 // OBTAINING THE PROCESS
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
 
-                // ERROR CHECKING
-                // 10-- validate steps
-                stepsValidation(process);
-
-                // 1-- Mandatory check and prefix checks
-                validatePrefix(process);
-
-                // 2-- Languages validation
-                validateDescriptionLanguages(process);
-                waitForOneSecond();
-                incrementProgress();
-
-                // 3-- Mandatory check and department validation
-                validateMandatory(process);
-                waitForOneSecond();
-                incrementProgress();
-
-                // 4-- Avoid missed steps
-                avoidMissedSteps(process);
-                waitForOneSecond();
-                incrementProgress();
-
-                // 5-- Global Variables
-                validateGlobalVariables(process);
-                waitForOneSecond();
-                incrementProgress();
-
-                // 6-- Validate process header
-                validateProcessHeader(process);
-                waitForOneSecond();
-                incrementProgress();
-
+//                // ERROR CHECKING
+//                // 10-- validate steps
+//                stepsValidation(process);
+//
+//                // 1-- Mandatory check and prefix checks
+//                validatePrefix(process);
+//
+//                // 2-- Languages validation
+//                validateDescriptionLanguages(process);
+//                waitForOneSecond();
+//                incrementProgress();
+//
+//                // 3-- Mandatory check and department validation
+//                validateMandatory(process);
+//                waitForOneSecond();
+//                incrementProgress();
+//
+//                // 4-- Avoid missed steps
+//                avoidMissedSteps(process);
+//                waitForOneSecond();
+//                incrementProgress();
+//
+//                // 5-- Global Variables
+//                validateGlobalVariables(process);
+//                waitForOneSecond();
+//                incrementProgress();
+//
+//                // 6-- Validate process header
+//                validateProcessHeader(process);
+//                waitForOneSecond();
+//                incrementProgress();
                 // 7-- Validate comments
                 validateComments(process);
                 waitForOneSecond();
-                incrementProgress();
-
-                // 8-- Validate vg_debug parameter
-                validateVgDebugParameter(process);
-                waitForOneSecond();
-                incrementProgress();
-
-                // 9-- Validate direct URL's
-                containsDirectURL(process);
-                waitForOneSecond();
-                incrementProgress();
-
-                // 11-- Validate no XOG writes
-                validateXogWrites(process);
-                waitForOneSecond();
-                incrementProgress();
-
-                // 12-- Validate SQL operations (INSERT, UPDATE, DELETE)
-                validateSQLOperations(process);
-                waitForOneSecond();
-                incrementProgress();
+//                incrementProgress();
+//
+//                // 8-- Validate vg_debug parameter
+//                validateVgDebugParameter(process);
+//                waitForOneSecond();
+//                incrementProgress();
+//
+//                // 9-- Validate direct URL's
+//                containsDirectURL(process);
+//                waitForOneSecond();
+//                incrementProgress();
+//
+//                // 11-- Validate no XOG writes
+//                validateXogWrites(process);
+//                waitForOneSecond();
+//                incrementProgress();
+//
+//                // 12-- Validate SQL operations (INSERT, UPDATE, DELETE)
+//                validateSQLOperations(process);
+//                waitForOneSecond();
+//                incrementProgress();
 
                 validateResultSummary();
                 errors.append("</body></html>");
