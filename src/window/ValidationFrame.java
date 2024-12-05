@@ -24,6 +24,9 @@ import javax.xml.parsers.ParserConfigurationException;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
 import org.w3c.dom.NodeList;
+import org.w3c.dom.traversal.DocumentTraversal;
+import org.w3c.dom.traversal.NodeFilter;
+import org.w3c.dom.traversal.TreeWalker;
 import org.xml.sax.SAXException;
 
 public class ValidationFrame extends javax.swing.JFrame {
@@ -378,7 +381,7 @@ public class ValidationFrame extends javax.swing.JFrame {
     }
 
     // Returns a list of line numbers where the specified XML tag is found
-    public static List<Integer> getLineNumberForTag(String tag) {
+    public static List<Integer> getLineNumber(String tag) {
         List<Integer> lineNumbers = new ArrayList<>();
 
         try (BufferedReader reader = new BufferedReader(new FileReader(xmlFile))) {
@@ -513,24 +516,34 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Validates that the process, steps and actions has descriptions in all required languages
     private void validateDescriptionLanguages(org.w3c.dom.Element process) {
+        // Verificar que todos los idiomas estén presentes en el proceso.
         if (!compareLanguages(process)) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
             errors.append(": The process does not have a description in all languages<br>");
         }
 
+        // Comprobamos las descripciones dentro de process (no dentro de Step o Action).
+        validateDescriptionInProcess(process);
+
+        // Recorremos los elementos Step dentro del proceso
         NodeList steps = process.getElementsByTagName("Step");
 
         for (int i = 0; i < steps.getLength(); i++) {
             org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
+
+            // Verificamos que todos los idiomas estén presentes en el Step.
             if (!compareLanguages(step)) {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
                 errors.append(": Step '" + step.getAttribute("id") + "' does not have a description in all languages<br>");
             }
 
+            // Recorremos las acciones dentro de cada Step
             NodeList actions = step.getElementsByTagName("Action");
 
             for (int j = 0; j < actions.getLength(); j++) {
                 org.w3c.dom.Element action = (org.w3c.dom.Element) actions.item(j);
+
+                // Verificamos que todos los idiomas estén presentes en la Action.
                 if (!compareLanguages(action)) {
                     errors.append("- <strong><font color='red'>ERROR</font></strong>");
                     errors.append(": Action '" + action.getAttribute("code") + "' in Step '" + step.getAttribute("id") + "' does not have a description in all languages<br>");
@@ -539,16 +552,41 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
+// Método para verificar que el atributo 'description' no esté vacío en los nls directamente dentro de process.
+    private void validateDescriptionInProcess(org.w3c.dom.Element process) {
+        // Iteramos sobre los nodos hijos de 'process' y buscamos solo los 'nls' directos.
+        NodeList childNodes = process.getChildNodes();
+
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node child = childNodes.item(i);
+
+            // Solo validamos los elementos 'nls' directos dentro de 'process'
+            if (child.getNodeName().equals("nls")) {
+                org.w3c.dom.Element nlsElement = (org.w3c.dom.Element) child;
+                // Verificamos que el atributo 'description' no esté vacío.
+                String description = nlsElement.getAttribute("description").trim();
+                if (description.isEmpty()) {
+                    String languageCode = nlsElement.getAttribute("languageCode");
+                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                    errors.append(": The description for language '" + languageCode + "' is empty<br>");
+                }
+            }
+        }
+    }
+
+// Método para verificar que todos los idiomas están presentes en el elemento.
     private boolean compareLanguages(org.w3c.dom.Element element) {
         String[] languages = {"ca", "cs", "da", "de", "en", "es", "fi", "fr", "hu", "it", "ja", "ko", "nl", "no",
             "pl", "pt", "ru", "sv", "tr", "zh", "zh_TW"};
         HashSet<String> languagesSet = new HashSet<>(Arrays.asList(languages));
         HashSet<String> foundLanguagesSet = new HashSet<>();
 
+        // Obtener los nodos hijos, que pueden incluir los elementos 'nls'
         NodeList childNodes = element.getChildNodes();
 
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node child = childNodes.item(i);
+            // Verificamos si el nodo es 'nls'
             if (child.getNodeName().equals("nls")) {
                 org.w3c.dom.Element nlsElement = (org.w3c.dom.Element) child;
                 String languageCode = nlsElement.getAttribute("languageCode");
@@ -556,6 +594,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
         }
 
+        // Comprobamos si todos los idiomas están presentes
         return foundLanguagesSet.containsAll(languagesSet);
     }
 
@@ -675,7 +714,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                     if (nameVar1.equals(nameVar2)) {
                         if (!valueVar1.equals(valueVar2)) {
                             errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                            errors.append(": Value in '" + nameVar2 + "' is not equal to '" + valueVar1 + "'<br>");
+                            errors.append(": Value in '").append(nameVar2).append("' is not equal to '").append(valueVar1).append("'<br>");
                         }
                         found = true;
                         break;
@@ -688,7 +727,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             if (missingVariables.length() > 0) {
                 missingVariables.setLength(missingVariables.length() - 2);
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": Variables not found: " + missingVariables.toString() + "<br>");
+                errors.append(": Variables not found: ").append(missingVariables.toString()).append("<br>");
             }
         } catch (Exception e) {
             System.out.println(e.getMessage());
@@ -751,63 +790,62 @@ public class ValidationFrame extends javax.swing.JFrame {
                 && "http://www.w3.org/1999/XSL/Transform".equals(gelScript.getAttribute("xmlns:xsl"));
     }
 
-    int commentsCont = 0;
-    boolean hasCommentIn100lines = false;
-    boolean hasComments = false;
-
-    // Validates that there are at least one comment for every 100 lines of text in each custom script.
+    // Check if scripts have comments
     private void validateComments(org.w3c.dom.Element process) {
         NodeList scripts = process.getElementsByTagName("gel:script");
 
         for (int i = 0; i < scripts.getLength(); i++) {
             org.w3c.dom.Element script = (org.w3c.dom.Element) scripts.item(i);
+            int lineCount = 0, currentBlock = 1, totalLinesCount = 0;
+            boolean hasCommentInBlock = false, hasComments = false;
 
-            // Reset the class-level variables for each script
-            commentsCont = 0;
-            hasCommentIn100lines = false;
-            hasComments = false;
+            TreeWalker treeWalker = ((DocumentTraversal) script.getOwnerDocument())
+                    .createTreeWalker(
+                            script,
+                            NodeFilter.SHOW_ALL,
+                            null,
+                            false
+                    );
 
-            // Recursive method call to parse the script
-            hasComments = analyzeNodesRecursively(script, i);
+            Node currentNode = treeWalker.getCurrentNode();
+            Node previousNode = null;
 
-            // Check if the script has no comments
-            if (!hasComments) {
+            while (currentNode != null) {
+                lineCount++;
+                totalLinesCount++;
+
+                if (currentNode.getNodeType() == Node.COMMENT_NODE) {
+                    hasCommentInBlock = true;
+                    hasComments = true;
+                }
+
+                if (previousNode != null && previousNode.getNodeType() == Node.TEXT_NODE
+                        && currentNode.getNodeType() != Node.TEXT_NODE) {
+                    lineCount--;
+                    totalLinesCount--;
+                }
+
+                if (lineCount >= 100) {
+                    if (!hasCommentInBlock) {
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                        errors.append(": No comments found in block " + currentBlock + " of 100 lines in script #" + (i + 1) + "<br>");
+                    }
+                    lineCount = 0;
+                    currentBlock++;
+                    hasCommentInBlock = false;
+                }
+
+                previousNode = currentNode;
+                currentNode = treeWalker.nextNode();
+            }
+
+            System.out.println("Script " + (i + 1) + " Lineas en total: " + totalLinesCount + " ¿Comentarios? " + hasComments);
+
+            if (totalLinesCount < 100 && !hasComments) {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
                 errors.append(": No comments found in script #" + (i + 1) + "<br>");
             }
         }
-    }
-
-    // Recursive method for parsing nodes and detecting lines and comments
-    private boolean analyzeNodesRecursively(Node node, int scriptNum) {
-        if (node.getNodeType() == Node.COMMENT_NODE) {
-            // If a comment is found, it is marked as true and the line counter is reset
-            hasCommentIn100lines = true;
-            commentsCont = 0; // Reset the counter when a comment is found
-        } else if (node.getNodeType() == Node.TEXT_NODE) {
-            // Increment consecutive line counter without comments
-            commentsCont++;
-            System.out.println("Line " + commentsCont);
-
-            if (commentsCont >= 100 && !hasCommentIn100lines) {
-                // Issue an error if there are 100 consecutive lines without a comment
-                errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": There are 100 consecutive lines without a comment in script #")
-                        .append(scriptNum + 1)
-                        .append("<br>");
-                // Resetting the counter after issuing the error
-                commentsCont = 0;
-            }
-        }
-
-        // Recursive processing of child nodes
-        NodeList childNodes = node.getChildNodes();
-        for (int i = 0; i < childNodes.getLength(); i++) {
-            hasCommentIn100lines = analyzeNodesRecursively(childNodes.item(i), scriptNum);
-        }
-
-        // Return if a comment was found in the node or its children
-        return hasCommentIn100lines;
     }
 
     // Checks if the "vg_debug" parameter is present and correctly set
@@ -850,10 +888,10 @@ public class ValidationFrame extends javax.swing.JFrame {
 
                     if (!hasVgDebugParameter) {
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                        errors.append(": Process script at Action '" + action.getAttribute("code") + "' in Step '" + step.getAttribute("id") + "' is missing the 'vg_debug' parameter<br>");
+                        errors.append(": Process script at Action '").append(action.getAttribute("code")).append("' in Step '").append(step.getAttribute("id")).append("' is missing the 'vg_debug' parameter<br>");
                     } else if (hasVgDebugParameter && !hasDefaultAttribute) {
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                        errors.append(": Process script at Action '" + action.getAttribute("code") + "' in Step '" + step.getAttribute("id") + "' has an incorrect 'default' attribute in 'vg_debug' parameter<br>");
+                        errors.append(": Process script at Action '").append(action.getAttribute("code")).append("' in Step '").append(step.getAttribute("id")).append("' has an incorrect 'default' attribute in 'vg_debug' parameter<br>");
                     }
                 }
             }
@@ -923,7 +961,7 @@ public class ValidationFrame extends javax.swing.JFrame {
             String endpoint = soapInvoke.getAttribute("endpoint");
 
             if (endpoint != null && endpoint.contains("/niku/xog")) {
-                List lineNumbers = getLineNumberForTag("<" + soapInvoke.getNodeName());
+                List lineNumbers = getLineNumber("<" + soapInvoke.getNodeName());
                 errors.append("- <strong><font color='orange'>WARNING</font></strong>");
                 errors.append(": Found a XOG write operation at line ").append(lineNumbers.get(i)).append("<br>");
             }
@@ -936,7 +974,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         for (int i = 0; i < sqlUpdates.getLength(); i++) {
             org.w3c.dom.Element sqlUpdate = (org.w3c.dom.Element) sqlUpdates.item(i);
-            List lineNumbers = getLineNumberForTag("<" + sqlUpdate.getNodeName());
+            List lineNumbers = getLineNumber("<" + sqlUpdate.getNodeName());
             errors.append("- <strong><font color='orange'>WARNING</font></strong>");
             errors.append(": Found a SQL operation at line ").append(lineNumbers.get(i)).append(" (UPDATE / DELETE / INSERT)<br>");
         }
@@ -1000,61 +1038,62 @@ public class ValidationFrame extends javax.swing.JFrame {
                 // OBTAINING THE PROCESS
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
 
-//                // ERROR CHECKING
-//                // 10-- validate steps
-//                stepsValidation(process);
-//
-//                // 1-- Mandatory check and prefix checks
-//                validatePrefix(process);
-//
-//                // 2-- Languages validation
-//                validateDescriptionLanguages(process);
-//                waitForOneSecond();
-//                incrementProgress();
-//
-//                // 3-- Mandatory check and department validation
-//                validateMandatory(process);
-//                waitForOneSecond();
-//                incrementProgress();
-//
-//                // 4-- Avoid missed steps
-//                avoidMissedSteps(process);
-//                waitForOneSecond();
-//                incrementProgress();
-//
-//                // 5-- Global Variables
-//                validateGlobalVariables(process);
-//                waitForOneSecond();
-//                incrementProgress();
-//
-//                // 6-- Validate process header
-//                validateProcessHeader(process);
-//                waitForOneSecond();
-//                incrementProgress();
+                // ERROR CHECKING
+                // 10-- validate steps
+                stepsValidation(process);
+
+                // 1-- Mandatory check and prefix checks
+                validatePrefix(process);
+
+                // 2-- Languages validation
+                validateDescriptionLanguages(process);
+                waitForOneSecond();
+                incrementProgress();
+
+                // 3-- Mandatory check and department validation
+                validateMandatory(process);
+                waitForOneSecond();
+                incrementProgress();
+
+                // 4-- Avoid missed steps
+                avoidMissedSteps(process);
+                waitForOneSecond();
+                incrementProgress();
+
+                // 5-- Global Variables
+                validateGlobalVariables(process);
+                waitForOneSecond();
+                incrementProgress();
+
+                // 6-- Validate process header
+                validateProcessHeader(process);
+                waitForOneSecond();
+                incrementProgress();
+
                 // 7-- Validate comments
                 validateComments(process);
-//                waitForOneSecond();
-//                incrementProgress();
-//
-//                // 8-- Validate vg_debug parameter
-//                validateVgDebugParameter(process);
-//                waitForOneSecond();
-//                incrementProgress();
-//
-//                // 9-- Validate direct URL's
-//                containsDirectURL(process);
-//                waitForOneSecond();
-//                incrementProgress();
-//
-//                // 11-- Validate no XOG writes
-//                validateXogWrites(process);
-//                waitForOneSecond();
-//                incrementProgress();
-//
-//                // 12-- Validate SQL operations (INSERT, UPDATE, DELETE)
-//                validateSQLOperations(process);
-//                waitForOneSecond();
-//                incrementProgress();
+                waitForOneSecond();
+                incrementProgress();
+
+                // 8-- Validate vg_debug parameter
+                validateVgDebugParameter(process);
+                waitForOneSecond();
+                incrementProgress();
+
+                // 9-- Validate direct URL's
+                containsDirectURL(process);
+                waitForOneSecond();
+                incrementProgress();
+
+                // 11-- Validate no XOG writes
+                validateXogWrites(process);
+                waitForOneSecond();
+                incrementProgress();
+
+                // 12-- Validate SQL operations (INSERT, UPDATE, DELETE)
+                validateSQLOperations(process);
+                waitForOneSecond();
+                incrementProgress();
 
                 validateResultSummary();
                 errors.append("</body></html>");
