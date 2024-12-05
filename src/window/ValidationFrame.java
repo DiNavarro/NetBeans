@@ -839,8 +839,6 @@ public class ValidationFrame extends javax.swing.JFrame {
                 currentNode = treeWalker.nextNode();
             }
 
-            System.out.println("Script " + (i + 1) + " Lineas en total: " + totalLinesCount + " ¿Comentarios? " + hasComments);
-
             if (totalLinesCount < 100 && !hasComments) {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
                 errors.append(": No comments found in script #" + (i + 1) + "<br>");
