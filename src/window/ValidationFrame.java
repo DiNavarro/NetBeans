@@ -11,6 +11,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import javax.swing.ImageIcon;
 import javax.swing.JFileChooser;
@@ -897,34 +899,73 @@ public class ValidationFrame extends javax.swing.JFrame {
     }
 
     // Checks if the process contains any direct URL
-    private void containsDirectURL(org.w3c.dom.Element process) {
-        String[] urlPatterns = {"http://", "https://"};
-        if (checkForURL(process, urlPatterns)) {
-            errors.append("- <strong><font color='red'>ERROR</font></strong>");
-            errors.append(": There is a direct URL\n");
-        }
-    }
+//    private void containsDirectURL(org.w3c.dom.Element process) {
+//        String[] urlPatterns = {"http://", "https://"};
+//        if (checkForURL(process, urlPatterns)) {
+//            errors.append("- <strong><font color='red'>ERROR</font></strong>");
+//            errors.append(": There is a direct URL\n");
+//        }
+//    }
+//
+//    // Recursively checks for the presence of URL patterns in text or attribute nodes
+//    private boolean checkForURL(Node node, String[] urlPatterns) {
+//        if (node.getNodeType() == Node.TEXT_NODE || node.getNodeType() == Node.ATTRIBUTE_NODE) {
+//            String textContent = node.getTextContent();
+//            for (String pattern : urlPatterns) {
+//                if (textContent.contains(pattern)) {
+//                    return true;
+//                }
+//            }
+//        }
+//        NodeList children = node.getChildNodes();
+//        for (int i = 0; i < children.getLength(); i++) {
+//            if (checkForURL(children.item(i), urlPatterns)) {
+//                return true;
+//            }
+//        }
+//        return false;
+//    }
+        public static void containsDirectURL() {
+        boolean insideGelScript = false;
+        int lineNumber = 0;
 
-    // Recursively checks for the presence of URL patterns in text or attribute nodes
-    private boolean checkForURL(Node node, String[] urlPatterns) {
-        if (node.getNodeType() == Node.TEXT_NODE || node.getNodeType() == Node.ATTRIBUTE_NODE) {
-            String textContent = node.getTextContent();
-            for (String pattern : urlPatterns) {
-                if (textContent.contains(pattern)) {
-                    return true;
+        // Regex para encontrar URLs
+        Pattern urlPattern = Pattern.compile("https?://[^\s\"'>]+");
+
+        try (BufferedReader reader = new BufferedReader(new FileReader(xmlFile))) {
+            String line;
+
+            while ((line = reader.readLine()) != null) {
+                lineNumber++;
+
+                // Detectar apertura de <gel:script>
+                if (line.contains("<gel:script")) {
+                    insideGelScript = true;
+                    continue;
+                }
+
+                // Detectar cierre de </gel:script>
+                if (line.contains("</gel:script>")) {
+                    insideGelScript = false;
+                    continue;
+                }
+
+                // Procesar líneas dentro de <gel:script>
+                if (insideGelScript) {
+                    Matcher matcher = urlPattern.matcher(line);
+                    if (matcher.find()) {
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>: Found URL at line ")
+                              .append(lineNumber)
+                              .append("<br>");
+                    }
                 }
             }
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        NodeList children = node.getChildNodes();
-        for (int i = 0; i < children.getLength(); i++) {
-            if (checkForURL(children.item(i), urlPatterns)) {
-                return true;
-            }
-        }
-        return false;
     }
 
-    // Validates that the process contains at least one intermediate step
+// Validates that the process contains at least one intermediate step
     private void stepsValidation(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
         boolean hasIntermediateStep = false;
@@ -1079,7 +1120,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 incrementProgress();
 
                 // 9-- Validate direct URL's
-                containsDirectURL(process);
+                containsDirectURL();
                 waitForOneSecond();
                 incrementProgress();
 
