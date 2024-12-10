@@ -899,37 +899,10 @@ public class ValidationFrame extends javax.swing.JFrame {
     }
 
     // Checks if the process contains any direct URL
-//    private void containsDirectURL(org.w3c.dom.Element process) {
-//        String[] urlPatterns = {"http://", "https://"};
-//        if (checkForURL(process, urlPatterns)) {
-//            errors.append("- <strong><font color='red'>ERROR</font></strong>");
-//            errors.append(": There is a direct URL\n");
-//        }
-//    }
-//
-//    // Recursively checks for the presence of URL patterns in text or attribute nodes
-//    private boolean checkForURL(Node node, String[] urlPatterns) {
-//        if (node.getNodeType() == Node.TEXT_NODE || node.getNodeType() == Node.ATTRIBUTE_NODE) {
-//            String textContent = node.getTextContent();
-//            for (String pattern : urlPatterns) {
-//                if (textContent.contains(pattern)) {
-//                    return true;
-//                }
-//            }
-//        }
-//        NodeList children = node.getChildNodes();
-//        for (int i = 0; i < children.getLength(); i++) {
-//            if (checkForURL(children.item(i), urlPatterns)) {
-//                return true;
-//            }
-//        }
-//        return false;
-//    }
-        public static void containsDirectURL() {
+    public static void containsDirectURL() {
         boolean insideGelScript = false;
         int lineNumber = 0;
 
-        // Regex para encontrar URLs
         Pattern urlPattern = Pattern.compile("https?://[^\s\"'>]+");
 
         try (BufferedReader reader = new BufferedReader(new FileReader(xmlFile))) {
@@ -938,25 +911,22 @@ public class ValidationFrame extends javax.swing.JFrame {
             while ((line = reader.readLine()) != null) {
                 lineNumber++;
 
-                // Detectar apertura de <gel:script>
                 if (line.contains("<gel:script")) {
                     insideGelScript = true;
                     continue;
                 }
 
-                // Detectar cierre de </gel:script>
                 if (line.contains("</gel:script>")) {
                     insideGelScript = false;
                     continue;
                 }
 
-                // Procesar líneas dentro de <gel:script>
                 if (insideGelScript) {
                     Matcher matcher = urlPattern.matcher(line);
-                    if (matcher.find()) {
-                        errors.append("- <strong><font color='red'>ERROR</font></strong>: Found URL at line ")
-                              .append(lineNumber)
-                              .append("<br>");
+                    if (matcher.find() && !line.trim().startsWith("<!--")) {
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>: Found direct URL at line ")
+                                .append(lineNumber)
+                                .append("<br>");
                     }
                 }
             }
@@ -965,7 +935,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-// Validates that the process contains at least one intermediate step
+    // Validates that the process contains at least one intermediate step
     private void stepsValidation(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
         boolean hasIntermediateStep = false;
@@ -1032,13 +1002,13 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Increments the progress bar
     private void incrementProgress() {
-        javax.swing.SwingUtilities.invokeLater(() -> progressBar.setValue(progressBar.getValue() + 10));
+        javax.swing.SwingUtilities.invokeLater(() -> progressBar.setValue(progressBar.getValue() + 9));
     }
 
-    // Pauses the execution for 500 milliseconds
-    private void waitForOneSecond() {
+    // Pauses the execution for 350 milliseconds
+    private void waitingTime() {
         try {
-            Thread.sleep(500);
+            Thread.sleep(350);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -1078,60 +1048,65 @@ public class ValidationFrame extends javax.swing.JFrame {
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
 
                 // ERROR CHECKING
-                // 10-- validate steps
-                stepsValidation(process);
 
                 // 1-- Mandatory check and prefix checks
                 validatePrefix(process);
+                waitingTime();
+                incrementProgress();
 
                 // 2-- Languages validation
                 validateDescriptionLanguages(process);
-                waitForOneSecond();
+                waitingTime();
                 incrementProgress();
 
                 // 3-- Mandatory check and department validation
                 validateMandatory(process);
-                waitForOneSecond();
+                waitingTime();
                 incrementProgress();
 
                 // 4-- Avoid missed steps
                 avoidMissedSteps(process);
-                waitForOneSecond();
+                waitingTime();
                 incrementProgress();
 
                 // 5-- Global Variables
                 validateGlobalVariables(process);
-                waitForOneSecond();
+                waitingTime();
                 incrementProgress();
 
                 // 6-- Validate process header
                 validateProcessHeader(process);
-                waitForOneSecond();
+                waitingTime();
                 incrementProgress();
 
                 // 7-- Validate comments
                 validateComments(process);
-                waitForOneSecond();
+                waitingTime();
                 incrementProgress();
 
                 // 8-- Validate vg_debug parameter
                 validateVgDebugParameter(process);
-                waitForOneSecond();
+                waitingTime();
                 incrementProgress();
 
                 // 9-- Validate direct URL's
                 containsDirectURL();
-                waitForOneSecond();
+                waitingTime();
+                incrementProgress();
+                
+                // 10-- validate steps
+                stepsValidation(process);
+                waitingTime();
                 incrementProgress();
 
                 // 11-- Validate no XOG writes
                 validateXogWrites(process);
-                waitForOneSecond();
+                waitingTime();
                 incrementProgress();
 
                 // 12-- Validate SQL operations (INSERT, UPDATE, DELETE)
                 validateSQLOperations(process);
-                waitForOneSecond();
+                waitingTime();
                 incrementProgress();
 
                 validateResultSummary();
