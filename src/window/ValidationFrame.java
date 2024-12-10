@@ -518,77 +518,66 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     // Validates that the process, steps and actions has descriptions in all required languages
     private void validateDescriptionLanguages(org.w3c.dom.Element process) {
-        // Verificar que todos los idiomas estén presentes en el proceso.
         if (!compareLanguages(process)) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
             errors.append(": The process does not have a description in all languages<br>");
         }
 
-        // Comprobamos las descripciones dentro de process (no dentro de Step o Action).
         validateDescriptionInProcess(process);
 
-        // Recorremos los elementos Step dentro del proceso
         NodeList steps = process.getElementsByTagName("Step");
 
         for (int i = 0; i < steps.getLength(); i++) {
             org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
 
-            // Verificamos que todos los idiomas estén presentes en el Step.
             if (!compareLanguages(step)) {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
                 errors.append(": Step '" + step.getAttribute("id") + "' does not have a description in all languages<br>");
             }
 
-            // Recorremos las acciones dentro de cada Step
             NodeList actions = step.getElementsByTagName("Action");
 
             for (int j = 0; j < actions.getLength(); j++) {
                 org.w3c.dom.Element action = (org.w3c.dom.Element) actions.item(j);
 
-                // Verificamos que todos los idiomas estén presentes en la Action.
                 if (!compareLanguages(action)) {
                     errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": Action '" + action.getAttribute("code") + "' in Step '" + step.getAttribute("id") + "' does not have a description in all languages<br>");
+                    errors.append(": Action '").append(action.getAttribute("code")).append("' in Step '").append(step.getAttribute("id")).append("' does not have a description in all languages<br>");
                 }
             }
         }
     }
 
-// Método para verificar que el atributo 'description' no esté vacío en los nls directamente dentro de process.
+    // Verifies that the ‘description’ attribute is not empty in the nls directly inside process
     private void validateDescriptionInProcess(org.w3c.dom.Element process) {
-        // Iteramos sobre los nodos hijos de 'process' y buscamos solo los 'nls' directos.
         NodeList childNodes = process.getChildNodes();
 
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node child = childNodes.item(i);
 
-            // Solo validamos los elementos 'nls' directos dentro de 'process'
             if (child.getNodeName().equals("nls")) {
                 org.w3c.dom.Element nlsElement = (org.w3c.dom.Element) child;
-                // Verificamos que el atributo 'description' no esté vacío.
                 String description = nlsElement.getAttribute("description").trim();
                 if (description.isEmpty()) {
                     String languageCode = nlsElement.getAttribute("languageCode");
                     errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": The description for language '" + languageCode + "' is empty<br>");
+                    errors.append(": The description for language '").append(languageCode).append("' is empty<br>");
                 }
             }
         }
     }
 
-// Método para verificar que todos los idiomas están presentes en el elemento.
+    // Verifies that all languages are present in the element
     private boolean compareLanguages(org.w3c.dom.Element element) {
         String[] languages = {"ca", "cs", "da", "de", "en", "es", "fi", "fr", "hu", "it", "ja", "ko", "nl", "no",
             "pl", "pt", "ru", "sv", "tr", "zh", "zh_TW"};
         HashSet<String> languagesSet = new HashSet<>(Arrays.asList(languages));
         HashSet<String> foundLanguagesSet = new HashSet<>();
 
-        // Obtener los nodos hijos, que pueden incluir los elementos 'nls'
         NodeList childNodes = element.getChildNodes();
 
         for (int i = 0; i < childNodes.getLength(); i++) {
             Node child = childNodes.item(i);
-            // Verificamos si el nodo es 'nls'
             if (child.getNodeName().equals("nls")) {
                 org.w3c.dom.Element nlsElement = (org.w3c.dom.Element) child;
                 String languageCode = nlsElement.getAttribute("languageCode");
@@ -596,7 +585,6 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
         }
 
-        // Comprobamos si todos los idiomas están presentes
         return foundLanguagesSet.containsAll(languagesSet);
     }
 
@@ -635,7 +623,6 @@ public class ValidationFrame extends javax.swing.JFrame {
 
         NodeList steps = process.getElementsByTagName("Step");
 
-        // Recolectar IDs de pasos y transiciones
         for (int i = 0; i < steps.getLength(); i++) {
             org.w3c.dom.Element step = (org.w3c.dom.Element) steps.item(i);
             String stepId = step.getAttribute("id");
@@ -649,29 +636,24 @@ public class ValidationFrame extends javax.swing.JFrame {
             }
         }
 
-        // Validar pasos y conexiones
         for (String stepId : stepIds) {
             if (stepId.equals("Start")) {
-                // Validar que Start tenga al menos una transición saliente
                 if (!transitionsMap.containsKey("Start")) {
                     errors.append("- <strong><font color='red'>ERROR</font></strong>");
                     errors.append(": Step 'Start' is missing a next step<br>");
                 }
             } else if (stepId.equals("Finish")) {
-                // Validar que Finish no tenga transiciones salientes
                 if (transitionsMap.containsKey("Finish")) {
                     errors.append("- <strong><font color='red'>ERROR</font></strong>");
                     errors.append(": Step 'Finish' should not have a next step<br>");
                 }
             } else {
-                // Validar que el paso actual sea destino en alguna transición
                 boolean isTargetOfAnyTransition = transitionsMap.containsValue(stepId);
                 if (!isTargetOfAnyTransition) {
                     errors.append("- <strong><font color='red'>ERROR</font></strong>");
                     errors.append(": Step '").append(stepId).append("' is missing a previous step<br>");
                 }
 
-                // Validar que el paso actual tenga al menos una transición saliente
                 if (!transitionsMap.containsKey(stepId)) {
                     errors.append("- <strong><font color='red'>ERROR</font></strong>");
                     errors.append(": Step '").append(stepId).append("' is missing a next step<br>");
@@ -736,7 +718,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Validates the process header and checks for the "Finish" step and its header content
+    // Validates that the process header and checks for the "Finish" step and its header content
     private void validateProcessHeader(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
         boolean finishStepFound = false;
@@ -770,7 +752,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Checks if the "gel:script" tag has the correct namespace attributes
+    // Checks if the "gel:script" tags have the correct namespace attributes
     private boolean checkHeader(org.w3c.dom.Element gelScript) {
         return "http://schemas.xmlsoap.org/soap/envelope/".equals(gelScript.getAttribute("xmlns:SOAP-ENV"))
                 && "jelly:com.niku.bpm.gel.BPMTagLibrary".equals(gelScript.getAttribute("xmlns:bpm"))
@@ -1005,7 +987,7 @@ public class ValidationFrame extends javax.swing.JFrame {
         javax.swing.SwingUtilities.invokeLater(() -> progressBar.setValue(progressBar.getValue() + 9));
     }
 
-    // Pauses the execution for 350 milliseconds
+    // Pauses the execution for the miliseconds specified
     private void waitingTime() {
         try {
             Thread.sleep(350);
@@ -1048,7 +1030,6 @@ public class ValidationFrame extends javax.swing.JFrame {
                 org.w3c.dom.Element process = (org.w3c.dom.Element) validateSingleProcess();
 
                 // ERROR CHECKING
-
                 // 1-- Mandatory check and prefix checks
                 validatePrefix(process);
                 waitingTime();
@@ -1093,7 +1074,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 containsDirectURL();
                 waitingTime();
                 incrementProgress();
-                
+
                 // 10-- validate steps
                 stepsValidation(process);
                 waitingTime();
@@ -1118,7 +1099,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 SwingUtilities.invokeLater(this::enableAll);
             }
         });
-        // Iniciar el hilo de validación
+        
         validationThread.start();
 
         return "Validation in progress...";
