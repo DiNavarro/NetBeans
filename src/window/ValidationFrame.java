@@ -532,7 +532,7 @@ public class ValidationFrame extends javax.swing.JFrame {
 
             if (!compareLanguages(step)) {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                errors.append(": Step '" + step.getAttribute("id") + "' does not have a description in all languages<br>");
+                errors.append(": Step '").append(step.getAttribute("id")).append("' does not have a description in all languages<br>");
             }
 
             NodeList actions = step.getElementsByTagName("Action");
@@ -637,27 +637,26 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
 
         for (String stepId : stepIds) {
-            if (stepId.equals("Start")) {
-                if (!transitionsMap.containsKey("Start")) {
-                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": Step 'Start' is missing a next step<br>");
-                }
-            } else if (stepId.equals("Finish")) {
-                if (transitionsMap.containsKey("Finish")) {
-                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": Step 'Finish' should not have a next step<br>");
-                }
-            } else {
-                boolean isTargetOfAnyTransition = transitionsMap.containsValue(stepId);
-                if (!isTargetOfAnyTransition) {
-                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": Step '").append(stepId).append("' is missing a previous step<br>");
-                }
-
-                if (!transitionsMap.containsKey(stepId)) {
-                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": Step '").append(stepId).append("' is missing a next step<br>");
-                }
+            switch (stepId) {
+                case "Start":
+                    if (!transitionsMap.containsKey("Start")) {
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                        errors.append(": Step 'Start' is missing a next step<br>");
+                    }   break;
+                case "Finish":
+                    if (transitionsMap.containsKey("Finish")) {
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                        errors.append(": Step 'Finish' should not have a next step<br>");
+                    }   break;
+                default:
+                    boolean isTargetOfAnyTransition = transitionsMap.containsValue(stepId);
+                    if (!isTargetOfAnyTransition) {
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                        errors.append(": Step '").append(stepId).append("' is missing a previous step<br>");
+                    }   if (!transitionsMap.containsKey(stepId)) {
+                        errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                        errors.append(": Step '").append(stepId).append("' is missing a next step<br>");
+                    }   break;
             }
         }
     }
@@ -713,7 +712,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 errors.append("- <strong><font color='red'>ERROR</font></strong>");
                 errors.append(": Variables not found: ").append(missingVariables.toString()).append("<br>");
             }
-        } catch (Exception e) {
+        } catch (IOException | ParserConfigurationException | SAXException e) {
             System.out.println(e.getMessage());
         }
     }
