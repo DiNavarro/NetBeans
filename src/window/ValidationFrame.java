@@ -466,7 +466,12 @@ public class ValidationFrame extends javax.swing.JFrame {
 
     public static StringBuilder errors = new StringBuilder();
 
-    // Validates that there is exactly one "Process" element in the XML document
+    /**
+     * Validates that there is exactly one <Process> element in the document.
+     *
+     * @return The single <Process> element if it exists, or {@code null} if
+     * there are multiple processes.
+     */
     private org.w3c.dom.Element validateSingleProcess() {
         NodeList processes = doc.getElementsByTagName("Process");
         if (processes.getLength() != 1) {
@@ -476,10 +481,16 @@ public class ValidationFrame extends javax.swing.JFrame {
         } else {
             return (org.w3c.dom.Element) processes.item(0);
         }
-
     }
 
-    // Validates that process and its steps/actions use the specified prefix
+    /**
+     * Validates that the given process and its steps and actions have the
+     * correct prefix. If no prefix is provided, a dialog prompts the user to
+     * insert one.
+     *
+     * @param process The <Process> element to validate, including its steps and
+     * actions.
+     */
     private void validatePrefix(org.w3c.dom.Element process) {
         if (!prefix.getText().trim().equals("Example: c_")) {
             NodeList steps = process.getElementsByTagName("Step");
@@ -516,7 +527,13 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Validates that the process, steps and actions has descriptions in all required languages
+    /**
+     * Validates that the process, its steps, and their actions have
+     * descriptions in all required languages.
+     *
+     * @param process The <Process> element to validate, including its steps and
+     * actions.
+     */
     private void validateDescriptionLanguages(org.w3c.dom.Element process) {
         if (!compareLanguages(process)) {
             errors.append("- <strong><font color='red'>ERROR</font></strong>");
@@ -548,26 +565,17 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Verifies that the ‘description’ attribute is not empty in the nls directly inside process
-    private void validateDescriptionInProcess(org.w3c.dom.Element process) {
-        NodeList childNodes = process.getChildNodes();
-
-        for (int i = 0; i < childNodes.getLength(); i++) {
-            Node child = childNodes.item(i);
-
-            if (child.getNodeName().equals("nls")) {
-                org.w3c.dom.Element nlsElement = (org.w3c.dom.Element) child;
-                String description = nlsElement.getAttribute("description").trim();
-                if (description.isEmpty()) {
-                    String languageCode = nlsElement.getAttribute("languageCode");
-                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
-                    errors.append(": The description for language '").append(languageCode).append("' is empty<br>");
-                }
-            }
-        }
-    }
-
-    // Verifies that all languages are present in the element
+    /**
+     * Compares the languages found in the given element. Checks if the element
+     * contains all the required languages by looking for "nls" child elements
+     * and their respective "languageCode" attributes.
+     *
+     * @param element The XML element to be validated, which contains child
+     * elements with language codes.
+     *
+     * @return {@code true} if all required languages are present in the
+     * element, {@code false} otherwise.
+     */
     private boolean compareLanguages(org.w3c.dom.Element element) {
         String[] languages = {"ca", "cs", "da", "de", "en", "es", "fi", "fr", "hu", "it", "ja", "ko", "nl", "no",
             "pl", "pt", "ru", "sv", "tr", "zh", "zh_TW"};
@@ -588,14 +596,56 @@ public class ValidationFrame extends javax.swing.JFrame {
         return foundLanguagesSet.containsAll(languagesSet);
     }
 
-    // Check if the answer to the mandatory question is affirmative 
+    /**
+     * Validates that each "nls" element within the provided process has a
+     * non-empty description. If any description is empty, an error message is
+     * appended to the error log, indicating the language code of the missing
+     * description.
+     *
+     * @param process The <Process> element to validate, which contains child
+     * "nls" elements with descriptions.
+     */
+    private void validateDescriptionInProcess(org.w3c.dom.Element process) {
+        NodeList childNodes = process.getChildNodes();
+
+        for (int i = 0; i < childNodes.getLength(); i++) {
+            Node child = childNodes.item(i);
+
+            if (child.getNodeName().equals("nls")) {
+                org.w3c.dom.Element nlsElement = (org.w3c.dom.Element) child;
+                String description = nlsElement.getAttribute("description").trim();
+                if (description.isEmpty()) {
+                    String languageCode = nlsElement.getAttribute("languageCode");
+                    errors.append("- <strong><font color='red'>ERROR</font></strong>");
+                    errors.append(": The description for language '").append(languageCode).append("' is empty<br>");
+                }
+            }
+        }
+    }
+
+    /**
+     * Validates the process based on a mandatory condition. If the mandatory
+     * condition is selected, the method triggers validation of the process
+     * department.
+     *
+     * @param process The <Process> element to validate based on the mandatory
+     * condition.
+     */
     private void validateMandatory(org.w3c.dom.Element process) {
         if (mandatory.isSelected(mandatoryYes.getModel())) {
             validateProcessDepartment(process);
         }
     }
 
-    // Validates that the process has a properly formatted department name in its "nls" elements
+    /**
+     * Validates that the "name" attribute of each "nls" element within the
+     * process contains the department information in the expected format. The
+     * expected format is a department code enclosed in parentheses followed by
+     * the department name.
+     *
+     * @param process The <Process> element to validate, which contains child
+     * "nls" elements to be checked.
+     */
     private void validateProcessDepartment(org.w3c.dom.Element process) {
         NodeList nlsList = process.getChildNodes();
         boolean hasDepartment = true;
@@ -616,7 +666,13 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Ensures that each step has both a previous and next step, if applicable
+    /**
+     * Validates the flow of steps in the process to ensure that all steps are
+     * properly connected.
+     *
+     * @param process The <Process> element containing the steps and transitions
+     * to validate.
+     */
     private void avoidMissedSteps(org.w3c.dom.Element process) {
         HashSet<String> stepIds = new HashSet<>();
         HashMap<String, String> transitionsMap = new HashMap<>();
@@ -642,26 +698,43 @@ public class ValidationFrame extends javax.swing.JFrame {
                     if (!transitionsMap.containsKey("Start")) {
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
                         errors.append(": Step 'Start' is missing a next step<br>");
-                    }   break;
+                    }
+                    break;
                 case "Finish":
                     if (transitionsMap.containsKey("Finish")) {
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
                         errors.append(": Step 'Finish' should not have a next step<br>");
-                    }   break;
+                    }
+                    break;
                 default:
                     boolean isTargetOfAnyTransition = transitionsMap.containsValue(stepId);
                     if (!isTargetOfAnyTransition) {
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
                         errors.append(": Step '").append(stepId).append("' is missing a previous step<br>");
-                    }   if (!transitionsMap.containsKey(stepId)) {
+                    }
+                    if (!transitionsMap.containsKey(stepId)) {
                         errors.append("- <strong><font color='red'>ERROR</font></strong>");
                         errors.append(": Step '").append(stepId).append("' is missing a next step<br>");
-                    }   break;
+                    }
+                    break;
             }
         }
     }
 
-    // Validates that the process's variables match the global variables file
+    /**
+     * Validates that the variables defined in the process match the values of
+     * global variables defined in the external "globalVariables.xml" file. This
+     * method checks the following:
+     * <ul>
+     * <li>If any global variable is missing from the process.</li>
+     * <li>If the value of a global variable in the process does not match the
+     * value in the global variables file.</li>
+     * </ul>
+     * Any discrepancies or missing variables are added to the error log.
+     *
+     * @param process The <Process> element to validate, which contains
+     * "core:set" elements that need to be compared with the global variables.
+     */
     private void validateGlobalVariables(org.w3c.dom.Element process) {
         String variablesPath = "src/document/globalVariables.xml";
 
@@ -674,11 +747,6 @@ public class ValidationFrame extends javax.swing.JFrame {
 
             Document globalVariables = dBuilder.parse(variablesFile);
             globalVariables.getDocumentElement().normalize();
-
-            if (globalVariables == null) {
-                System.out.println("Global variables null");
-                return;
-            }
 
             NodeList variablesOriginal = globalVariables.getElementsByTagName("core:set");
             NodeList variablesToCheck = process.getElementsByTagName("core:set");
@@ -717,7 +785,18 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Validates that the process header and checks for the "Finish" step and its header content
+    /**
+     * Validates the process header by ensuring that the following conditions
+     * are met:
+     * <ul>
+     * <li>The process must contain a "Finish" step.</li>
+     * <li>The "Finish" step must contain a valid GEL (General Expression
+     * Language) script in its header.</li>
+     * </ul>
+     *
+     * @param process The <Process> element to validate, which should contain
+     * steps, including the "Finish" step and any associated scripts.
+     */
     private void validateProcessHeader(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
         boolean finishStepFound = false;
@@ -751,7 +830,17 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Checks if the "gel:script" tags have the correct namespace attributes
+    /**
+     * Verifies that the header of the GEL Script element contains the necessary
+     * XML attributes with the expected values. This method ensures that the GEL
+     * script's namespace attributes are correct to guarantee the script's
+     * validity in terms of required libraries and schemas.
+     *
+     * @param gelScript The Element representing the GEL script to be validated.
+     *
+     * @return {@code true} if all the GEL script's namespace attributes have
+     * the expected values, {@code false} otherwise.
+     */
     private boolean checkHeader(org.w3c.dom.Element gelScript) {
         return "http://schemas.xmlsoap.org/soap/envelope/".equals(gelScript.getAttribute("xmlns:SOAP-ENV"))
                 && "jelly:com.niku.bpm.gel.BPMTagLibrary".equals(gelScript.getAttribute("xmlns:bpm"))
@@ -773,7 +862,15 @@ public class ValidationFrame extends javax.swing.JFrame {
                 && "http://www.w3.org/1999/XSL/Transform".equals(gelScript.getAttribute("xmlns:xsl"));
     }
 
-    // Check if scripts have comments
+    /**
+     * Validates that the provided process contains comments in its associated
+     * GEL scripts. The validation checks that each script contains comments in
+     * every block of 100 lines. If a script has fewer than 100 lines, it checks
+     * that the entire script contains at least one comment.
+     *
+     * @param process The Element representing the process that needs to be
+     * validated. This element should contain one or more <gel:script> elements.
+     */
     private void validateComments(org.w3c.dom.Element process) {
         NodeList scripts = process.getElementsByTagName("gel:script");
 
@@ -829,7 +926,17 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Checks if the "vg_debug" parameter is present and correctly set
+    /**
+     * Validates that the provided process contains the 'vg_debug' parameter in
+     * each of its actions' GEL scripts. The method checks that: - Each action
+     * contains a 'vg_debug' parameter. - The 'vg_debug' parameter must have a
+     * valid 'default' attribute value, either "0" or "1".
+     *
+     * @param process The Element representing the process that needs to be
+     * validated. This element should contain one or more <Step>
+     * elements, each of which may contain <Action> elements that may include
+     * GEL scripts with parameters.
+     */
     private void validateVgDebugParameter(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
 
@@ -879,7 +986,12 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Checks if the process contains any direct URL
+    /**
+     * Validates the presence of direct URLs within GEL scripts in the given XML
+     * file. The method checks if any line inside a <gel:script> tag contains a
+     * URL (starting with "http" or "https"). It also ensures that URLs are not
+     * commented out.
+     */
     public static void containsDirectURL() {
         boolean insideGelScript = false;
         int lineNumber = 0;
@@ -916,7 +1028,14 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Validates that the process contains at least one intermediate step
+    /**
+     * Validates the steps in a given process to ensure that the process
+     * contains at least one intermediate step (a step other than "Start" or
+     * "Finish"). The method also checks that the process has at least 3 steps
+     * in total. If either condition is not met, an error message is generated.
+     *
+     * @param process The XML element representing the process to be validated.
+     */
     private void stepsValidation(org.w3c.dom.Element process) {
         NodeList steps = process.getElementsByTagName("Step");
         boolean hasIntermediateStep = false;
@@ -942,7 +1061,15 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Validates that no XOG write operations are found in the process
+    /**
+     * Validates the process to check for any SOAP invoke operations that
+     * perform a write operation to XOG. It checks if any <soap:invoke> tag
+     * contain an endpoint related to "/niku/xog", which indicates a write
+     * operation. If such a SOAP invoke operation is found, a warning message is
+     * generated indicating the line number where it appears in the XML.
+     *
+     * @param process The XML element representing the process to be validated.
+     */
     private void validateXogWrites(org.w3c.dom.Element process) {
         NodeList soapInvokes = process.getElementsByTagName("soap:invoke");
 
@@ -958,7 +1085,14 @@ public class ValidationFrame extends javax.swing.JFrame {
         }
     }
 
-    // Validates that no SQL update operations are found in the process
+    /**
+     * Validates the process to check for any SQL operations (UPDATE, DELETE,
+     * INSERT) in the form of <sql:update> tags within the XML. It checks if any
+     * SQL operation is found in the process and generates a warning indicating
+     * the line number where the SQL operation appears in the XML.
+     *
+     * @param process The XML element representing the process to be validated.
+     */
     private void validateSQLOperations(org.w3c.dom.Element process) {
         NodeList sqlUpdates = process.getElementsByTagName("sql:update");
 
@@ -986,10 +1120,10 @@ public class ValidationFrame extends javax.swing.JFrame {
         javax.swing.SwingUtilities.invokeLater(() -> progressBar.setValue(progressBar.getValue() + 9));
     }
 
-    // Pauses the execution for the miliseconds specified
+    // Pauses the execution for the duration specified
     private void waitingTime() {
         try {
-            Thread.sleep(350);
+            Thread.sleep(200 + (long) Math.random() * 101);
         } catch (InterruptedException e) {
             e.printStackTrace();
         }
@@ -1098,7 +1232,7 @@ public class ValidationFrame extends javax.swing.JFrame {
                 SwingUtilities.invokeLater(this::enableAll);
             }
         });
-        
+
         validationThread.start();
 
         return "Validation in progress...";
